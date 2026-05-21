@@ -4,6 +4,17 @@ export const PC_COST_ENGAGE            = 15  // engageMember
 export const PC_COST_DIALOGUE          = 20  // initiateDialogue
 export const PC_COST_ADVANCE_ACCESSION = 25  // advanceAccession / advanceAccession
 
+// PC replenished per turn by difficulty (single source of truth for UI + engine).
+export const PC_REPLENISH: Record<string, number> = {
+  diplomat: 19,
+  normal:   13,
+  crisis:   10,
+}
+
+export function pcReplenishFor(difficulty: string | undefined): number {
+  return PC_REPLENISH[difficulty ?? 'normal'] ?? PC_REPLENISH.normal
+}
+
 // Maps ISO 3166-1 numeric codes (as strings, with leading zeros) to our alpha-3 IDs.
 // These are the feature.id values in the world-atlas 110m TopoJSON.
 // Malta (470) and Kosovo (XKX) have no entry — Malta is sub-pixel at 110m,

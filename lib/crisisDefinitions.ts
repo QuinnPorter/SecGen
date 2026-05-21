@@ -1,15 +1,13 @@
 import { type Crisis, type CrisisOption, type CrisisType, type GameState } from './gameState'
+import { hasTrait } from './countryTraits'
 
 // ── Country classification ────────────────────────────────────────────────────
 
 // Major powers whose defence-spending decisions cascade alliance-wide
 const MAJOR_POWERS = new Set(['USA', 'DEU', 'GBR', 'FRA'])
 
-// Countries whose withdrawal would be strategically catastrophic
-const STRATEGIC_ANCHORS = new Set(['USA', 'TUR', 'DEU', 'GBR', 'FRA'])
-
-// Members with structural energy dependency on adversary supply routes
-const HIGH_ENERGY_DEPENDENCY = new Set(['HUN', 'SVK', 'BGR', 'EST', 'LVA', 'LTU'])
+// Strategic anchors and high-energy-dependency lists are derived from
+// lib/countryTraits (kingmaker, energy_dependent) — single source of truth.
 
 // ── Special effect keys ───────────────────────────────────────────────────────
 // Keys prefixed with _ are NOT applied by applyCrisisEffects today.
@@ -217,7 +215,7 @@ function buildWithdrawalThreat(
   countryName: string,
   state: GameState,
 ): Crisis {
-  const severity = STRATEGIC_ANCHORS.has(countryId) ? 'critical' as const : 'high' as const
+  const severity = hasTrait(countryId, 'kingmaker') ? 'critical' as const : 'high' as const
   const recentlyEngaged = (state.budgetState.memberEngagements[countryId] ?? 0) > 0
   // Emergency talks effectiveness scales with prior diplomatic investment
   const emergencyGain   = recentlyEngaged ? 13 : 6
@@ -585,7 +583,7 @@ function buildPoliticalInstability(countryId: string, countryName: string): Cris
 // ── ENERGY CRISIS ─────────────────────────────────────────────────────────────
 
 function buildEnergyCrisis(countryId: string, countryName: string): Crisis {
-  const severity = HIGH_ENERGY_DEPENDENCY.has(countryId) ? 'high' as const : 'medium' as const
+  const severity = hasTrait(countryId, 'energy_dependent') ? 'high' as const : 'medium' as const
 
   const options: CrisisOption[] = [
     {

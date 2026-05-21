@@ -6,7 +6,13 @@ import { checkAdversaryReactions } from './adversaryReactions'
 import { checkVictoryConditions, type VictoryResult } from './victoryConditions'
 import { saveGame } from './persistence'
 import { checkForScenarios, SCENARIOS } from './scenarios'
-import { PC_COST_ENGAGE, PC_COST_DIALOGUE, PC_COST_ADVANCE_ACCESSION } from './constants'
+import { hasTrait } from './countryTraits'
+import {
+  PC_COST_ENGAGE,
+  PC_COST_DIALOGUE,
+  PC_COST_ADVANCE_ACCESSION,
+  pcReplenishFor,
+} from './constants'
 export type { VictoryResult }
 
 export interface Country {
@@ -45,6 +51,10 @@ export interface BudgetState {
 
 export type ViewMode = 'world' | 'nato-area'
 export type Difficulty = 'diplomat' | 'normal' | 'crisis'
+
+export interface InformationWarfareState {
+  pressure: number // 0–100, global IW pressure
+}
 
 export type AccessionStage =
   | 'none'
@@ -149,6 +159,7 @@ export interface GameState {
   accessionProcesses: Record<string, AccessionProcess>
   crises: Crisis[]
   adversaryTension: number    // 0–100, global adversary tension, starts at 30
+  informationWarfare: InformationWarfareState // global IW pressure subsystem
   article5Active: boolean     // true while an article5 crisis is active or pending
   pendingEffects: PendingEffect[]
   resolvedCrises: Crisis[]
@@ -210,17 +221,20 @@ const ESCALATION_PENALTIES: Record<string, Partial<Record<string, number>>> = {
 
 // Applies a CrisisOption's effects dict to the relevant country/global stats.
 // Returns new countries map, updated approvalRating, and updated adversaryTension.
+// Kingmaker trait: crises affecting a kingmaker country hit approvalRating 2× harder.
 function applyCrisisEffects(
   effects: Partial<Record<string, number>>,
   affectedCountryId: string,
   ctx: { countries: Record<string, Country>; approvalRating: number; adversaryTension: number },
 ): { countries: Record<string, Country>; approvalRating: number; adversaryTension: number } {
   let { countries, approvalRating, adversaryTension } = ctx
+  const isKingmaker = hasTrait(affectedCountryId, 'kingmaker')
 
   for (const [key, delta] of Object.entries(effects)) {
     if (!delta) continue
     if (key === 'approvalRating') {
-      approvalRating = clamp(approvalRating + delta, 0, 100)
+      const scaled = isKingmaker ? delta * 2 : delta
+      approvalRating = clamp(approvalRating + scaled, 0, 100)
       continue
     }
     if (key === 'adversaryTension') {
@@ -281,6 +295,12 @@ export function adjustTurnsToResolve(base: number, difficulty: string): number {
   return base
 }
 
+export function initialInformationWarfare(difficulty: Difficulty): InformationWarfareState {
+  if (difficulty === 'crisis')   return { pressure: 35 }
+  if (difficulty === 'diplomat') return { pressure: 15 }
+  return { pressure: 20 }
+}
+
 // ── Scenario-mode helpers ─────────────────────────────────────────────────────
 
 const DEFAULT_SCENARIO_MODE: 'historical' | 'alternate' = 'alternate'
@@ -318,6 +338,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   accessionProcesses: {},
   crises: [],
   adversaryTension: 30,
+  informationWarfare: { pressure: 20 },
   article5Active: false,
   pendingEffects: [],
   notifications: [],
@@ -407,7 +428,10 @@ export const useGameStore = create<GameState>((set, get) => ({
     set((state) => ({
       budgetState: {
         ...state.budgetState,
-        totalPoliticalCapital: Math.min(100, state.budgetState.totalPoliticalCapital + 10),
+        totalPoliticalCapital: Math.min(
+          100,
+          state.budgetState.totalPoliticalCapital + pcReplenishFor(state.difficulty),
+        ),
       },
     })),
 
@@ -678,6 +702,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         accessionProcesses: {},
         crises: [],
         adversaryTension: difficulty === 'crisis' ? 50 : 30,
+        informationWarfare: initialInformationWarfare(difficulty),
         article5Active: false,
         pendingEffects: [],
         notifications: [],
@@ -712,8 +737,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       for (const [id, turns] of Object.entries(prevBudget.memberEngagements)) {
         if (turns - 1 > 0) nextEngagements[id] = turns - 1
       }
-      const PC_REPLENISH: Record<string, number> = { diplomat: 15, normal: 10, crisis: 8 }
-      const pcPerTurn = PC_REPLENISH[state.difficulty] ?? 10
+      const pcPerTurn = pcReplenishFor(state.difficulty)
       const nextBudget: BudgetState = {
         ...prevBudget,
         totalPoliticalCapital: Math.min(100, prevBudget.totalPoliticalCapital + pcPerTurn),
@@ -738,6 +762,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       const baseCrises = passive.crises ?? state.crises
       const nextNotifications: Notification[] = [...state.notifications]
       let workingArticle5Active = state.article5Active
+      let workingIwPressure = passive.informationWarfare?.pressure ?? state.informationWarfare.pressure
       const extraCrises: Crisis[] = []
       const nextCrises: Crisis[] = []
       const newlyArchived: Crisis[] = []
@@ -784,6 +809,7 @@ export const useGameStore = create<GameState>((set, get) => ({
             )
             workingCountries    = esc.countries
             workingArticle5Active = esc.article5Active
+            workingIwPressure   = clamp(workingIwPressure + esc.informationWarfareDelta, 0, 100)
             extraCrises.push(...esc.newCrises)
             nextNotifications.push(...esc.newNotifications)
             newlyArchived.push({ ...crisis, turnsActive: ta, status: 'escalated' as CrisisStatus, resolvedAtTurn: state.turn + 1 })
@@ -933,6 +959,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         countries:          workingCountries,
         approvalRating:     workingApproval,
         adversaryTension:   workingTension,
+        informationWarfare: { pressure: workingIwPressure },
         article5Active:     nextArticle5Active,
         turn:               nextTurn,
         quarter:            (rollYear ? 1 : nextQ) as 1 | 2 | 3 | 4,
@@ -972,6 +999,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       accessionProcesses: {},
       crises: [],
       adversaryTension: 30,
+      informationWarfare: { pressure: 20 },
       article5Active: false,
       pendingEffects: [],
       notifications: [],

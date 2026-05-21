@@ -5,6 +5,8 @@ import { computeReadinessDelta, computeSatisfactionDelta, computeThreatDelta } f
 import { computeAccessionScore, computeAccessionBreakdown } from '@/lib/accessionHelpers'
 import { computeMemberTendency } from '@/lib/voteSimulator'
 import { PC_COST_ENGAGE, PC_COST_DIALOGUE, PC_COST_ADVANCE_ACCESSION } from '@/lib/constants'
+import { traitsFor, TRAIT_DISPLAY } from '@/lib/countryTraits'
+import { AlertTriangle, Circle, Check, Minus, X } from 'lucide-react'
 
 const NATO_ACCESSION_YEAR: Record<string, number> = {
   USA: 1949, CAN: 1949, GBR: 1949, FRA: 1949, ITA: 1949,
@@ -24,10 +26,10 @@ const NATO_ACCESSION_YEAR: Record<string, number> = {
 }
 
 const ALIGNMENT_BADGE: Record<string, { label: string; bg: string; color: string }> = {
-  nato:      { label: 'NATO Member',  bg: '#1d4ed8', color: '#fff' },
-  adversary: { label: 'Adversary',    bg: '#991b1b', color: '#fff' },
-  candidate: { label: 'Candidate',    bg: '#1e3a8a', color: '#93c5fd' },
-  neutral:   { label: 'Neutral',      bg: '#374151', color: '#d1d5db' },
+  nato:      { label: 'NATO Member',  bg: '#004990', color: '#fff' },
+  adversary: { label: 'Adversary',    bg: '#b91c1c', color: '#fff' },
+  candidate: { label: 'Candidate',    bg: '#e0eaf5', color: '#004990' },
+  neutral:   { label: 'Neutral',      bg: '#f5f3ef', color: '#57534e' },
 }
 
 function StatBar({
@@ -44,13 +46,13 @@ function StatBar({
   const pct = Math.min(100, (value / max) * 100)
   return (
     <div className="mb-3">
-      <div className="flex justify-between text-xs mb-1" style={{ color: '#9ca3af' }}>
+      <div className="flex justify-between text-xs mb-1" style={{ color: '#78716c' }}>
         <span>{label}</span>
-        <span style={{ color: '#e8edf2' }}>{value}</span>
+        <span className="tabular-nums font-semibold" style={{ color: '#1c1917' }}>{value}</span>
       </div>
       <div
         className="h-1.5 rounded-full"
-        style={{ background: '#0d1f2d' }}
+        style={{ background: '#e7e5e0' }}
         title={`${label}: ${value} / ${max}`}
       >
         <div
@@ -64,25 +66,25 @@ function StatBar({
 
 function GdpBar({ country }: { country: Country }) {
   const pct = country.gdpDefencePercent
-  const barColor = pct >= 2 ? '#16a34a' : '#dc2626'
-  const textColor = pct >= 2 ? '#4ade80' : '#f87171'
+  const barColor = pct >= 2 ? '#15803d' : '#dc2626'
+  const textColor = pct >= 2 ? '#15803d' : '#b91c1c'
   const barWidth = Math.min(100, (pct / 5) * 100) // scale: 5% = full bar
 
   return (
     <div className="mb-3">
-      <div className="flex justify-between text-xs mb-1" style={{ color: '#9ca3af' }}>
+      <div className="flex justify-between text-xs mb-1" style={{ color: '#78716c' }}>
         <span>Defence spending</span>
-        <span style={{ color: textColor }}>
+        <span className="tabular-nums font-semibold" style={{ color: textColor }}>
           {pct > 0 ? `${pct.toFixed(1)}% GDP` : 'N/A'}
         </span>
       </div>
-      <div className="h-1.5 rounded-full" style={{ background: '#0d1f2d' }} title={`Defence spending: ${pct > 0 ? pct.toFixed(1) : 'N/A'}% GDP (target: 2.0%)`}>
+      <div className="h-1.5 rounded-full" style={{ background: '#e7e5e0' }} title={`Defence spending: ${pct > 0 ? pct.toFixed(1) : 'N/A'}% GDP (target: 2.0%)`}>
         <div
           className="h-full rounded-full transition-all duration-500"
           style={{ width: `${barWidth}%`, background: barColor }}
         />
       </div>
-      <div className="flex justify-between text-xs mt-0.5" style={{ color: '#4b5563' }}>
+      <div className="flex justify-between text-xs mt-0.5 tabular-nums" style={{ color: '#a8a29e' }}>
         <span>0%</span>
         <span>2%</span>
         <span>5%</span>
@@ -99,11 +101,11 @@ const STAGE_LABEL: Record<AccessionStage, string> = {
   acceding:   'Acceding',
 }
 const STAGE_COLOR: Record<AccessionStage, string> = {
-  none:       '#6b7280',
-  dialogue:   '#9ca3af',
-  map:        '#f59e0b',
-  invitation: '#93c5fd',
-  acceding:   '#4ade80',
+  none:       '#78716c',
+  dialogue:   '#57534e',
+  map:        '#b45309',
+  invitation: '#004990',
+  acceding:   '#15803d',
 }
 const NEXT_STAGE_LABEL: Partial<Record<AccessionStage, string>> = {
   dialogue:   'Advance to MAP Stage',
@@ -112,16 +114,22 @@ const NEXT_STAGE_LABEL: Partial<Record<AccessionStage, string>> = {
   acceding:   'Finalise Accession',
 }
 
-const VOTE_STYLE: Record<string, { symbol: string; color: string }> = {
-  yes:     { symbol: '✓', color: '#4ade80' },
-  abstain: { symbol: '~', color: '#9ca3af' },
-  no:      { symbol: '✗', color: '#f87171' },
+function VoteGlyph({ tendency }: { tendency: string }) {
+  if (tendency === 'yes')     return <Check  size={12} strokeWidth={2.5} color="#15803d" />
+  if (tendency === 'abstain') return <Minus  size={12} strokeWidth={2.5} color="#78716c" />
+  return                             <X      size={12} strokeWidth={2.5} color="#b91c1c" />
+}
+
+const VOTE_COLOR: Record<string, string> = {
+  yes:     '#15803d',
+  abstain: '#78716c',
+  no:      '#b91c1c',
 }
 
 function AccessionScoreBar({ score }: { score: number }) {
-  const color = score >= 80 ? '#4ade80' : score >= 50 ? '#f59e0b' : '#3b82f6'
+  const color = score >= 80 ? '#15803d' : score >= 50 ? '#b45309' : '#004990'
   return (
-    <div className="h-1.5 w-full rounded-full" style={{ background: '#0a1929' }}>
+    <div className="h-1.5 w-full rounded-full" style={{ background: '#e7e5e0' }}>
       <div
         className="h-full rounded-full transition-all duration-300"
         style={{ width: `${score}%`, background: color }}
@@ -136,16 +144,16 @@ function deltaLabel(value: number): string {
 }
 
 function deltaColor(value: number): string {
-  if (value > 0) return '#4ade80'
-  if (value < 0) return '#f87171'
-  return '#6b7280'
+  if (value > 0) return '#15803d'
+  if (value < 0) return '#b91c1c'
+  return '#78716c'
 }
 
 const SEV_DOT_COLOR: Record<string, string> = {
-  low:      '#6b7280',
-  medium:   '#f59e0b',
-  high:     '#dc2626',
-  critical: '#ef4444',
+  low:      '#78716c',
+  medium:   '#b45309',
+  high:     '#b91c1c',
+  critical: '#dc2626',
 }
 
 export default function CountryPanel() {
@@ -195,10 +203,11 @@ export default function CountryPanel() {
       className="absolute right-0 top-0 h-full overflow-y-auto z-20"
       style={{
         width: 380,
-        background: '#152840',
+        background: '#fafaf9',
         transform: isOpen ? 'translateX(0)' : 'translateX(100%)',
         transition: 'transform 280ms ease-in-out',
-        borderLeft: '1px solid #1e3a5f',
+        borderLeft: '1px solid #e7e5e0',
+        boxShadow: isOpen ? '-8px 0 24px rgba(15, 23, 42, 0.06)' : 'none',
       }}
     >
       {country && badge && (
@@ -206,25 +215,37 @@ export default function CountryPanel() {
           {/* Header */}
           <div className="flex items-start justify-between mb-4">
             <div className="flex-1 pr-4">
-              <h2 className="font-semibold leading-tight" style={{ fontSize: 24, color: '#e8edf2' }}>
+              <h2
+                className="font-serif font-semibold leading-tight tracking-tight"
+                style={{ fontSize: 26, color: '#1c1917', letterSpacing: '-0.01em' }}
+              >
                 {country.name}
               </h2>
-              <p className="text-sm mt-0.5" style={{ color: '#6b7280' }}>
+              <p className="text-sm mt-1" style={{ color: '#78716c' }}>
                 {country.region}
               </p>
             </div>
             <button
               onClick={() => selectCountry(null)}
-              className="flex-shrink-0 rounded-full flex items-center justify-center text-sm font-bold transition-colors"
+              className="flex-shrink-0 rounded-full flex items-center justify-center transition-colors"
               style={{
                 width: 28,
                 height: 28,
-                background: '#1e3a5f',
-                color: '#9ca3af',
+                background: 'transparent',
+                color: '#78716c',
+                border: '1px solid #e7e5e0',
+              }}
+              onMouseEnter={(e) => {
+                ;(e.currentTarget as HTMLButtonElement).style.background = '#f5f3ef'
+                ;(e.currentTarget as HTMLButtonElement).style.color = '#1c1917'
+              }}
+              onMouseLeave={(e) => {
+                ;(e.currentTarget as HTMLButtonElement).style.background = 'transparent'
+                ;(e.currentTarget as HTMLButtonElement).style.color = '#78716c'
               }}
               aria-label="Close panel"
             >
-              ✕
+              <X size={14} strokeWidth={2} />
             </button>
           </div>
 
@@ -238,23 +259,51 @@ export default function CountryPanel() {
             </span>
             {isFragile && (
               <span
-                className="text-xs font-bold px-2.5 py-1 rounded-full"
-                style={{ background: '#451a03', color: '#fbbf24', border: '1px solid #92400e' }}
+                className="flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full"
+                style={{ background: '#fef3c7', color: '#92400e', border: '1px solid #b45309' }}
               >
-                ⚠ Fragile Member
+                <AlertTriangle size={11} strokeWidth={2.5} />
+                Fragile Member
               </span>
             )}
             {country.alignment === 'nato' && NATO_ACCESSION_YEAR[country.id] && (
-              <span className="text-xs" style={{ color: '#6b7280' }}>
+              <span className="text-xs tabular-nums" style={{ color: '#78716c' }}>
                 Member since {NATO_ACCESSION_YEAR[country.id]}
               </span>
             )}
           </div>
 
+          {/* Trait chips */}
+          {traitsFor(country.id).length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mb-5">
+              {traitsFor(country.id).map((t) => {
+                const meta = TRAIT_DISPLAY[t]
+                return (
+                  <span
+                    key={t}
+                    title={meta.description}
+                    className="text-xs font-semibold px-2 py-0.5 rounded"
+                    style={{
+                      background: '#f5f3ef',
+                      color: meta.color,
+                      border: `1px solid ${meta.color}55`,
+                    }}
+                  >
+                    {meta.label}
+                  </span>
+                )
+              })}
+            </div>
+          )}
+
           {/* Stats */}
           <div
-            className="rounded-lg p-4 mb-5"
-            style={{ background: '#0d1f2d' }}
+            className="rounded-lg p-5 mb-5"
+            style={{
+              background: '#f5f3ef',
+              border: '1px solid #e7e5e0',
+              boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
+            }}
           >
             <GdpBar country={country} />
 
@@ -262,32 +311,39 @@ export default function CountryPanel() {
               <StatBar
                 label="Alliance satisfaction"
                 value={country.allianceSatisfaction}
-                barColor="#2563eb"
+                barColor="#004990"
               />
             )}
 
             <StatBar
               label="Threat level"
               value={country.threatLevel}
-              barColor={country.threatLevel >= 60 ? '#dc2626' : '#f59e0b'}
+              barColor={country.threatLevel >= 60 ? '#dc2626' : '#b45309'}
             />
 
             <StatBar
               label="Fiscal pressure"
               value={country.fiscalPressure}
-              barColor={country.fiscalPressure >= 60 ? '#f59e0b' : '#6b7280'}
+              barColor={country.fiscalPressure >= 60 ? '#b45309' : '#78716c'}
             />
           </div>
 
           {/* Flavour text */}
-          <p className="text-sm leading-relaxed mb-5" style={{ color: '#9ca3af' }}>
+          <p className="text-sm leading-relaxed mb-5" style={{ color: '#57534e' }}>
             {country.notes}
           </p>
 
           {/* Expansion section — candidates and neutrals */}
           {isExpansionTarget && (
-            <div className="rounded-lg p-4 mb-4" style={{ background: '#0d1f2d', border: '1px solid #1e3a5f' }}>
-              <p className="text-xs font-medium uppercase tracking-wider mb-3" style={{ color: '#6b7280' }}>
+            <div
+              className="rounded-lg p-5 mb-4"
+              style={{
+                background: '#f5f3ef',
+                border: '1px solid #e7e5e0',
+                boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
+              }}
+            >
+              <p className="text-xs font-medium uppercase tracking-wider mb-3" style={{ color: '#78716c' }}>
                 Expansion
               </p>
 
@@ -299,28 +355,28 @@ export default function CountryPanel() {
                     <span
                       className="text-xs font-bold px-2 py-0.5 rounded"
                       style={{
-                        background: '#1a2f47',
+                        background: '#f0ede7',
                         color: STAGE_COLOR[activeProcess.stage],
                       }}
                     >
                       {STAGE_LABEL[activeProcess.stage]}
                     </span>
-                    <span className="text-xs" style={{ color: '#4b5563' }}>
+                    <span className="text-xs tabular-nums" style={{ color: '#a8a29e' }}>
                       {activeProcess.turnsInStage} turn{activeProcess.turnsInStage !== 1 ? 's' : ''} in stage
                     </span>
                   </div>
 
                   {/* Score bar */}
                   <div>
-                    <div className="flex justify-between text-xs mb-1.5" style={{ color: '#6b7280' }}>
+                    <div className="flex justify-between text-xs mb-1.5" style={{ color: '#78716c' }}>
                       <span>Accession score</span>
-                      <span style={{ color: activeProcess.score >= 80 ? '#4ade80' : '#e8edf2' }}>
+                      <span className="tabular-nums font-semibold" style={{ color: activeProcess.score >= 80 ? '#15803d' : '#1c1917' }}>
                         {activeProcess.score} / 100
                       </span>
                     </div>
                     <AccessionScoreBar score={activeProcess.score} />
                     {activeProcess.stage === 'map' && activeProcess.score < 80 && (
-                      <p className="text-xs mt-1" style={{ color: '#f87171' }}>
+                      <p className="text-xs mt-1" style={{ color: '#b91c1c' }}>
                         Score 80 required to extend invitation
                       </p>
                     )}
@@ -328,8 +384,9 @@ export default function CountryPanel() {
 
                   {/* Adversary warning */}
                   {activeProcess.adversaryReactionTriggered && (
-                    <p className="text-xs" style={{ color: '#f87171' }}>
-                      ⚠ Adversary reaction triggered — expect increased regional tension
+                    <p className="flex items-center gap-1.5 text-xs" style={{ color: '#b91c1c' }}>
+                      <AlertTriangle size={12} strokeWidth={2} />
+                      Adversary reaction triggered — expect increased regional tension
                     </p>
                   )}
 
@@ -356,8 +413,8 @@ export default function CountryPanel() {
                         title={btnTitle}
                         className="w-full rounded py-2 text-xs font-semibold"
                         style={{
-                          background: disabled ? '#1e3a5f' : '#2563eb',
-                          color:      disabled ? '#4b5563' : '#fff',
+                          background: disabled ? '#f0ede7' : '#004990',
+                          color:      disabled ? '#a8a29e' : '#fff',
                           cursor:     disabled ? 'not-allowed' : 'pointer',
                         }}
                       >
@@ -378,9 +435,9 @@ export default function CountryPanel() {
                     return (
                       <>
                         <div>
-                          <div className="flex justify-between text-xs mb-1.5" style={{ color: '#6b7280' }}>
+                          <div className="flex justify-between text-xs mb-1.5" style={{ color: '#78716c' }}>
                             <span>Accession Readiness</span>
-                            <span style={{ color: score >= 80 ? '#4ade80' : '#e8edf2' }}>{score} / 100</span>
+                            <span className="tabular-nums font-semibold" style={{ color: score >= 80 ? '#15803d' : '#1c1917' }}>{score} / 100</span>
                           </div>
                           <AccessionScoreBar score={score} />
                         </div>
@@ -388,8 +445,8 @@ export default function CountryPanel() {
                         <div className="space-y-1">
                           {factors.map((f) => (
                             <div key={f.label} className="flex justify-between text-xs">
-                              <span style={{ color: '#9ca3af' }}>{f.label}</span>
-                              <span style={{ color: f.delta > 0 ? '#4ade80' : '#f87171' }}>
+                              <span style={{ color: '#57534e' }}>{f.label}</span>
+                              <span className="tabular-nums font-semibold" style={{ color: f.delta > 0 ? '#15803d' : '#b91c1c' }}>
                                 {f.delta > 0 ? `+${f.delta}` : f.delta}
                               </span>
                             </div>
@@ -405,15 +462,15 @@ export default function CountryPanel() {
                     title={pc < PC_COST_DIALOGUE ? `Insufficient political capital — need ${PC_COST_DIALOGUE} PC` : `Begin Dialogue — costs ${PC_COST_DIALOGUE} PC`}
                     className="w-full rounded py-2 text-xs font-semibold"
                     style={{
-                      background: pc < PC_COST_DIALOGUE ? '#1e3a5f' : '#1d4ed8',
-                      color:      pc < PC_COST_DIALOGUE ? '#4b5563' : '#fff',
+                      background: pc < PC_COST_DIALOGUE ? '#f0ede7' : '#004990',
+                      color:      pc < PC_COST_DIALOGUE ? '#a8a29e' : '#fff',
                       cursor:     pc < PC_COST_DIALOGUE ? 'not-allowed' : 'pointer',
                     }}
                   >
                     Begin Dialogue
                   </button>
                   {pc < PC_COST_DIALOGUE && (
-                    <p className="text-xs text-center" style={{ color: '#f87171' }}>
+                    <p className="text-xs text-center" style={{ color: '#b91c1c' }}>
                       Insufficient political capital (need {PC_COST_DIALOGUE})
                     </p>
                   )}
@@ -426,14 +483,21 @@ export default function CountryPanel() {
           {country.alignment === 'nato' && (
             <>
               {/* Diplomatic Actions */}
-              <div className="rounded-lg p-4 mb-4" style={{ background: '#0d1f2d', border: '1px solid #1e3a5f' }}>
-                <p className="text-xs font-medium uppercase tracking-wider mb-3" style={{ color: '#6b7280' }}>
+              <div
+                className="rounded-lg p-5 mb-4"
+                style={{
+                  background: '#f5f3ef',
+                  border: '1px solid #e7e5e0',
+                  boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
+                }}
+              >
+                <p className="text-xs font-medium uppercase tracking-wider mb-3" style={{ color: '#78716c' }}>
                   Diplomatic Actions
                 </p>
                 {isEngaged ? (
                   <div className="flex items-center gap-2">
-                    <span style={{ color: '#4ade80', fontSize: 13 }}>●</span>
-                    <span className="text-sm font-medium" style={{ color: '#4ade80' }}>
+                    <Circle size={9} fill="#15803d" strokeWidth={0} />
+                    <span className="text-sm font-medium tabular-nums" style={{ color: '#15803d' }}>
                       Currently Engaged — {turnsLeft} turn{turnsLeft !== 1 ? 's' : ''} remaining
                     </span>
                   </div>
@@ -445,20 +509,20 @@ export default function CountryPanel() {
                       title={pc < PC_COST_ENGAGE ? `Insufficient political capital — need ${PC_COST_ENGAGE} PC` : `Engage Country — costs ${PC_COST_ENGAGE} PC, lasts 3 turns`}
                       className="w-full rounded-lg py-2 text-sm font-semibold transition-colors"
                       style={{
-                        background: pc < PC_COST_ENGAGE ? '#1e3a5f' : '#1d4ed8',
-                        color:      pc < PC_COST_ENGAGE ? '#4b5563' : '#fff',
+                        background: pc < PC_COST_ENGAGE ? '#f0ede7' : '#004990',
+                        color:      pc < PC_COST_ENGAGE ? '#a8a29e' : '#fff',
                         cursor:     pc < PC_COST_ENGAGE ? 'not-allowed' : 'pointer',
                       }}
                       onMouseEnter={(e) => {
-                        if (pc >= PC_COST_ENGAGE) (e.currentTarget as HTMLButtonElement).style.background = '#2563eb'
+                        if (pc >= PC_COST_ENGAGE) (e.currentTarget as HTMLButtonElement).style.background = '#003a78'
                       }}
                       onMouseLeave={(e) => {
-                        if (pc >= PC_COST_ENGAGE) (e.currentTarget as HTMLButtonElement).style.background = '#1d4ed8'
+                        if (pc >= PC_COST_ENGAGE) (e.currentTarget as HTMLButtonElement).style.background = '#004990'
                       }}
                     >
                       Engage Country
                     </button>
-                    <p className="text-xs mt-1.5 text-center" style={{ color: pc < PC_COST_ENGAGE ? '#f87171' : '#4b5563' }}>
+                    <p className="text-xs mt-1.5 text-center tabular-nums" style={{ color: pc < PC_COST_ENGAGE ? '#b91c1c' : '#a8a29e' }}>
                       {pc < PC_COST_ENGAGE ? 'Insufficient political capital' : `Costs ${PC_COST_ENGAGE} PC · Lasts 3 turns`}
                     </p>
                   </div>
@@ -467,8 +531,15 @@ export default function CountryPanel() {
 
               {/* Alliance Vote Tendency */}
               {activeProcessList.length > 0 && (
-                <div className="rounded-lg p-4 mb-4" style={{ background: '#0d1f2d', border: '1px solid #1e3a5f' }}>
-                  <p className="text-xs font-medium uppercase tracking-wider mb-3" style={{ color: '#6b7280' }}>
+                <div
+                  className="rounded-lg p-5 mb-4"
+                  style={{
+                    background: '#f5f3ef',
+                    border: '1px solid #e7e5e0',
+                    boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
+                  }}
+                >
+                  <p className="text-xs font-medium uppercase tracking-wider mb-3" style={{ color: '#78716c' }}>
                     Alliance Vote Tendency
                   </p>
                   <div className="space-y-2">
@@ -476,20 +547,20 @@ export default function CountryPanel() {
                       const candidate = countries[proc.countryId]
                       if (!candidate || !selectedCountry) return null
                       const tendency  = computeMemberTendency(selectedCountry, proc.countryId, stateSnap)
-                      const { symbol, color } = VOTE_STYLE[tendency]
                       return (
                         <div key={proc.countryId} className="flex items-center justify-between">
-                          <span className="text-xs" style={{ color: '#9ca3af' }}>
+                          <span className="text-xs" style={{ color: '#57534e' }}>
                             {candidate.name}
                           </span>
-                          <span className="text-xs font-semibold" style={{ color }}>
-                            {symbol} {tendency.charAt(0).toUpperCase() + tendency.slice(1)}
+                          <span className="flex items-center gap-1 text-xs font-semibold" style={{ color: VOTE_COLOR[tendency] }}>
+                            <VoteGlyph tendency={tendency} />
+                            {tendency.charAt(0).toUpperCase() + tendency.slice(1)}
                           </span>
                         </div>
                       )
                     })}
                   </div>
-                  <p className="text-xs mt-2.5" style={{ color: '#374151' }}>
+                  <p className="text-xs mt-2.5" style={{ color: '#a8a29e' }}>
                     Engage this member to shift a leaning vote toward yes.
                   </p>
                 </div>
@@ -497,32 +568,39 @@ export default function CountryPanel() {
 
               {/* Crisis History */}
               {countryResolvedCrises.length > 0 && (
-                <div className="rounded-lg p-4 mb-4" style={{ background: '#0d1f2d', border: '1px solid #1e3a5f' }}>
-                  <p className="text-xs font-medium uppercase tracking-wider mb-3" style={{ color: '#6b7280' }}>
+                <div
+                  className="rounded-lg p-5 mb-4"
+                  style={{
+                    background: '#f5f3ef',
+                    border: '1px solid #e7e5e0',
+                    boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
+                  }}
+                >
+                  <p className="text-xs font-medium uppercase tracking-wider mb-3" style={{ color: '#78716c' }}>
                     Crisis History
                   </p>
                   <div className="space-y-2">
                     {[...countryResolvedCrises].reverse().slice(0, 5).map((c) => (
                       <div key={c.id} className="flex items-start gap-2">
-                        <span
-                          className="flex-shrink-0 mt-0.5"
-                          style={{ fontSize: 7, color: SEV_DOT_COLOR[c.severity] ?? '#6b7280', lineHeight: 1.8 }}
-                        >
-                          ●
-                        </span>
+                        <Circle
+                          size={7}
+                          fill={SEV_DOT_COLOR[c.severity] ?? '#78716c'}
+                          strokeWidth={0}
+                          style={{ marginTop: 5, flexShrink: 0 }}
+                        />
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs truncate" style={{ color: '#e8edf2' }}>{c.title}</p>
+                          <p className="text-xs truncate" style={{ color: '#1c1917' }}>{c.title}</p>
                           <div className="flex items-center gap-1.5 mt-0.5">
                             <span
                               style={{
                                 fontSize: 10,
-                                color: c.status === 'escalated' ? '#f87171' : '#4ade80',
+                                color: c.status === 'escalated' ? '#dc2626' : '#15803d',
                               }}
                             >
                               {c.status === 'escalated' ? 'Escalated' : 'Resolved'}
                             </span>
-                            <span style={{ color: '#374151', fontSize: 10 }}>·</span>
-                            <span style={{ color: '#374151', fontSize: 10 }}>
+                            <span style={{ color: '#a8a29e', fontSize: 10 }}>·</span>
+                            <span className="tabular-nums" style={{ color: '#a8a29e', fontSize: 10 }}>
                               Turn {c.resolvedAtTurn ?? '—'}
                             </span>
                           </div>
@@ -534,8 +612,15 @@ export default function CountryPanel() {
               )}
 
               {/* Budget Impact */}
-              <div className="rounded-lg p-4" style={{ background: '#0d1f2d', border: '1px solid #1e3a5f' }}>
-                <p className="text-xs font-medium uppercase tracking-wider mb-3" style={{ color: '#6b7280' }}>
+              <div
+                className="rounded-lg p-5"
+                style={{
+                  background: '#f5f3ef',
+                  border: '1px solid #e7e5e0',
+                  boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
+                }}
+              >
+                <p className="text-xs font-medium uppercase tracking-wider mb-3" style={{ color: '#78716c' }}>
                   Budget Impact This Turn
                 </p>
                 {(() => {
@@ -565,10 +650,10 @@ export default function CountryPanel() {
                     <div className="space-y-2.5">
                       {rows.map(({ label, delta, suffix }) => (
                         <div key={label} className="flex items-start justify-between gap-2">
-                          <span className="text-xs" style={{ color: '#9ca3af', flexShrink: 0 }}>
+                          <span className="text-xs" style={{ color: '#57534e', flexShrink: 0 }}>
                             {label}
                           </span>
-                          <span className="text-xs text-right" style={{ color: deltaColor(delta) }}>
+                          <span className="text-xs text-right tabular-nums" style={{ color: deltaColor(delta) }}>
                             {deltaLabel(delta)}{suffix}
                           </span>
                         </div>

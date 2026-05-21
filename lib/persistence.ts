@@ -94,6 +94,10 @@ export function loadGame(): GameState | null {
       localStorage.removeItem(META_KEY)
       return null
     }
+    // Migrate older saves missing the informationWarfare subsystem
+    if (!parsed.informationWarfare || typeof parsed.informationWarfare.pressure !== 'number') {
+      parsed.informationWarfare = { pressure: 20 }
+    }
     return parsed
   } catch {
     localStorage.removeItem(SAVE_KEY)

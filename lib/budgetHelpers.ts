@@ -1,4 +1,5 @@
 import { type BudgetAllocation, type Country } from './gameState'
+import { hasTrait } from './countryTraits'
 
 function clamp(v: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, v))
@@ -40,11 +41,15 @@ export function computeSatisfactionDelta(
 
   // Communications
   if (isEngaged) {
-    sat = clamp(sat + allocation.communications / 40, 0, 100)
+    sat = clamp(sat + allocation.communications / 25, 0, 100)
   } else {
-    const diff60  = 60 - sat
-    const drift60 = diff60 > 0 ? Math.min(0.5, diff60) : Math.max(-0.5, diff60)
-    if (drift60 !== 0) sat = clamp(sat + drift60, 0, 100)
+    // Baseline drift toward 60 (50 for eurosceptic members), accelerated by
+    // communications investment. Default ±0.5/turn cap rises with allocation.
+    const baselineTarget = hasTrait(country.id, 'eurosceptic') ? 50 : 60
+    const baselineCap = 0.5 + allocation.communications / 80
+    const diffTarget = baselineTarget - sat
+    const drift = diffTarget > 0 ? Math.min(baselineCap, diffTarget) : Math.max(-baselineCap, diffTarget)
+    if (drift !== 0) sat = clamp(sat + drift, 0, 100)
   }
 
   return sat - country.allianceSatisfaction

@@ -12,16 +12,17 @@ import { simulateMemberVotes } from './voteSimulator'
 import { checkAdversaryReactions } from './adversaryReactions'
 import { checkForNewCrises } from './crisisTriggers'
 import { buildCrisis } from './crisisDefinitions'
+import { hasTrait } from './countryTraits'
 
 function clamp(v: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, v))
 }
 
 // RAndD produces a multiplier used in Phase 4 crisis resolution.
-// It is computed on demand rather than stored: 1 + allocation.RAndD / 200
-// (e.g. allocation 50 → 1.25×, allocation 100 → 1.5×)
+// It is computed on demand rather than stored: 1 + allocation.RAndD / 100
+// (e.g. allocation 50 → 1.5×, allocation 100 → 2×)
 export function rdMultiplier(rAndDAllocation: number): number {
-  return 1 + rAndDAllocation / 200
+  return 1 + rAndDAllocation / 100
 }
 
 // Difficulty helpers (local copy — no import needed)
@@ -35,6 +36,15 @@ export function applyPassiveChanges(state: GameState): Partial<GameState> {
   const updatedCountries = { ...state.countries }
   const { allocation, memberEngagements } = state.budgetState
   const difficulty = state.difficulty ?? 'normal'
+
+  // ── Information warfare pressure tick ──────────────────────────────────────
+  // Climbs with adversaryTension, drained by combined cyberDefence + comms.
+  // High pressure also bleeds satisfaction from cyber_target members.
+  const iwGain   = state.adversaryTension / 40
+  const iwDrain  = (allocation.cyberDefence + allocation.communications) / 30
+  const iwBefore = state.informationWarfare?.pressure ?? 20
+  const iwAfter  = clamp(iwBefore + iwGain - iwDrain, 0, 100)
+  const iwSatBleed = iwAfter > 70 ? 0.5 : 0
 
   for (const id of Object.keys(updatedCountries)) {
     const c = updatedCountries[id]
@@ -59,9 +69,9 @@ export function applyPassiveChanges(state: GameState): Partial<GameState> {
       next.fiscalPressure = clamp(c.fiscalPressure + fiscalIncrement, 0, 100)
     }
 
-    // partnerAid: eases fiscal pressure for over-stretched members
-    if (c.fiscalPressure > 60) {
-      const fiscalReduction = allocation.partnerAid / 80
+    // partnerAid: eases fiscal pressure for stretched members
+    if (c.fiscalPressure > 40) {
+      const fiscalReduction = allocation.partnerAid / 60
       const fiscalBefore = next.fiscalPressure ?? c.fiscalPressure
       next.fiscalPressure = clamp(fiscalBefore - fiscalReduction, 0, 100)
     }
@@ -79,6 +89,12 @@ export function applyPassiveChanges(state: GameState): Partial<GameState> {
     const satDelta = computeSatisfactionDelta(c, allocation, isEngaged, state.turn)
     if (satDelta !== 0) {
       next.allianceSatisfaction = clamp(c.allianceSatisfaction + satDelta, 0, 100)
+    }
+
+    // IW bleed: cyber_target members lose satisfaction while IW pressure is high
+    if (iwSatBleed > 0 && hasTrait(id, 'cyber_target')) {
+      const base = next.allianceSatisfaction ?? c.allianceSatisfaction
+      next.allianceSatisfaction = clamp(base - iwSatBleed, 0, 100)
     }
 
     // Track consecutive high-fiscal turns and turns without engagement for crisis triggers
@@ -177,13 +193,14 @@ export function applyPassiveChanges(state: GameState): Partial<GameState> {
     nextAccessionProcesses[id] = updatedProc
   }
 
-  // Check for newly triggered crises based on current game state
+  // Check for newly triggered crises based on current game state (using updated IW)
   const triggeredCrises = checkForNewCrises({
     ...state,
     countries: updatedCountries,
     crises: nextCrises,
     accessionProcesses: nextAccessionProcesses,
     approvalRating,
+    informationWarfare: { pressure: iwAfter },
   })
   if (triggeredCrises.length > 0) {
     nextCrises = [...nextCrises, ...triggeredCrises]
@@ -194,19 +211,21 @@ export function applyPassiveChanges(state: GameState): Partial<GameState> {
     approvalRating,
     accessionProcesses: nextAccessionProcesses,
     crises:             nextCrises,
+    informationWarfare: { pressure: iwAfter },
   }
 }
 
 // ── Escalation side effects ───────────────────────────────────────────────────
-
-const STRATEGIC_ANCHORS = new Set(['USA', 'TUR', 'DEU', 'GBR', 'FRA'])
-const ADVERSARY_BORDER_MEMBERS = ['EST', 'LVA', 'LTU', 'POL', 'NOR', 'FIN']
+// Trait lookups (kingmaker, frontline) are the single source of truth here —
+// the previous STRATEGIC_ANCHORS / ADVERSARY_BORDER_MEMBERS sets have moved
+// into lib/countryTraits.ts.
 
 interface EscalationResult {
   newCrises: Crisis[]
   newNotifications: Notification[]
   countries: Record<string, Country>
   article5Active: boolean
+  informationWarfareDelta: number
 }
 
 export function handleEscalationSideEffects(
@@ -222,6 +241,12 @@ export function handleEscalationSideEffects(
   const newNotifications: Notification[] = []
   let updatedCountries = countries
   let updatedArticle5  = article5Active
+  let iwDelta = 0
+
+  // Hybrid attack escalation pumps IW pressure upward
+  if (crisis.type === 'hybrid_attack') {
+    iwDelta += 8
+  }
 
   const country     = countries[crisis.affectedCountryId]
   const countryName = country?.name ?? crisis.affectedCountryId
@@ -235,9 +260,9 @@ export function handleEscalationSideEffects(
     }
   }
 
-  // WITHDRAWAL THREAT → strategic_crisis notification for anchor members
+  // WITHDRAWAL THREAT → strategic_crisis notification for anchor (kingmaker) members
   if (crisis.type === 'withdrawal_threat') {
-    if (STRATEGIC_ANCHORS.has(crisis.affectedCountryId)) {
+    if (hasTrait(crisis.affectedCountryId, 'kingmaker')) {
       newNotifications.push({
         id: crypto.randomUUID(),
         text: `STRATEGIC CRISIS: ${countryName} has suspended NATO commitments — alliance cohesion at risk.`,
@@ -267,9 +292,8 @@ export function handleEscalationSideEffects(
             c.affectedCountryId === id &&
             (c.status === 'active' || c.status === 'pending'),
         )
-      const target = ADVERSARY_BORDER_MEMBERS
-        .map((id) => updatedCountries[id])
-        .filter((c): c is Country => !!c && c.alignment === 'nato' && !hasActiveForeignThreat(c.id))
+      const target = Object.values(updatedCountries)
+        .filter((c) => c.alignment === 'nato' && hasTrait(c.id, 'frontline') && !hasActiveForeignThreat(c.id))
         .sort((a, b) => b.threatLevel - a.threatLevel)[0]
       if (target) {
         const snap: GameState = { ...baseState, countries: updatedCountries }
@@ -283,5 +307,11 @@ export function handleEscalationSideEffects(
     ...c,
     turnsToResolve: adjustTurnsToResolve(c.turnsToResolve, difficulty),
   }))
-  return { newCrises: adjustedCrises, newNotifications, countries: updatedCountries, article5Active: updatedArticle5 }
+  return {
+    newCrises: adjustedCrises,
+    newNotifications,
+    countries: updatedCountries,
+    article5Active: updatedArticle5,
+    informationWarfareDelta: iwDelta,
+  }
 }

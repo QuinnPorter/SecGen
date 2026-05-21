@@ -1,60 +1,65 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useGameStore, type BudgetAllocation } from '@/lib/gameState'
-import { PC_COST_ENGAGE } from '@/lib/constants'
+import { PC_COST_ENGAGE, pcReplenishFor } from '@/lib/constants'
+import {
+  computeReadinessDelta,
+  computeSatisfactionDelta,
+  computeThreatDelta,
+} from '@/lib/budgetHelpers'
+import { rdMultiplier } from '@/lib/turnEngine'
+import { X, AlertTriangle, Lightbulb } from 'lucide-react'
 
 const ALLOCATION_KEYS: Array<keyof BudgetAllocation> = [
   'troopReadiness', 'RAndD', 'cyberDefence', 'partnerAid', 'communications',
 ]
 
-const SLIDER_CONFIG: Array<{
+interface SliderMeta {
   key: keyof BudgetAllocation
   label: string
   color: string
   description: string
-  effect: (v: number) => string
-}> = [
+}
+
+const SLIDER_META: SliderMeta[] = [
   {
     key: 'troopReadiness',
     label: 'Troop Readiness',
-    color: '#2563eb',
+    color: '#004990',
     description: 'Drives readiness improvement across all NATO members each turn.',
-    effect: (v) =>
-      v < 20
-        ? '⚠ Below threshold — readiness decays 2 pts/turn'
-        : `Readiness drifts toward ${v} (up to +3 pts/turn per member)`,
   },
   {
     key: 'RAndD',
     label: 'R&D',
-    color: '#7c3aed',
-    description: 'Technology investment; unlocks advanced crisis resolution options in Phase 4.',
-    effect: (v) => `Crisis resolution multiplier ×${(1 + v / 200).toFixed(2)}`,
+    color: '#6d28d9',
+    description: 'Technology investment; multiplies the impact of crisis resolution options.',
   },
   {
     key: 'cyberDefence',
     label: 'Cyber Defence',
-    color: '#0d9488',
-    description: 'Suppresses threat levels across all NATO members each turn.',
-    effect: (v) => `−${(v / 50).toFixed(2)} threat/turn per member (floor 5)`,
+    color: '#0f766e',
+    description: 'Suppresses threat levels across all NATO members each turn; reduces hybrid attack frequency.',
   },
   {
     key: 'partnerAid',
     label: 'Partner Aid',
-    color: '#d97706',
+    color: '#b45309',
     description: 'Builds accession momentum for candidates; eases fiscal pressure on stretched members.',
-    effect: (v) =>
-      `+${(v / 100).toFixed(2)} accession score/turn · −${(v / 80).toFixed(2)} fiscal pressure (if >60)`,
   },
   {
     key: 'communications',
     label: 'Communications',
-    color: '#16a34a',
-    description: 'Boosts alliance satisfaction for engaged members; others drift toward 60 baseline.',
-    effect: (v) => `+${(v / 40).toFixed(2)} satisfaction/turn for engaged members`,
+    color: '#15803d',
+    description: 'Boosts alliance satisfaction; suppresses domestic political crises.',
   },
 ]
+
+function fmtSigned(n: number, digits = 1): string {
+  if (Math.abs(n) < 0.05) return '0'
+  const sign = n > 0 ? '+' : '−'
+  return `${sign}${Math.abs(n).toFixed(digits)}`
+}
 
 // Mirrors the store's setAllocation logic for local draft state
 function adjustDraft(
@@ -96,7 +101,11 @@ export default function BudgetPanel({ isOpen, onClose }: Props) {
   const turn              = useGameStore((s) => s.turn)
   const quarter           = useGameStore((s) => s.quarter)
   const year              = useGameStore((s) => s.year)
+  const difficulty        = useGameStore((s) => s.difficulty)
+  const countries         = useGameStore((s) => s.countries)
   const setFullAllocation = useGameStore((s) => s.setFullAllocation)
+  const pcPerTurn         = pcReplenishFor(difficulty)
+  const memberEngagements = budgetState.memberEngagements
 
   const [draft, setDraft] = useState<BudgetAllocation>(budgetState.allocation)
 
@@ -105,11 +114,95 @@ export default function BudgetPanel({ isOpen, onClose }: Props) {
     if (isOpen) setDraft(budgetState.allocation)
   }, [isOpen, budgetState.allocation])
 
+  // Live per-turn projections. Mirrors the math in turnEngine.applyPassiveChanges
+  // by reusing the budgetHelpers exports.
+  const projection = useMemo(() => {
+    const nato       = Object.values(countries).filter((c) => c.alignment === 'nato')
+    const candidates = Object.values(countries).filter((c) => c.alignment === 'candidate')
+    const stretched  = nato.filter((c) => c.fiscalPressure > 40)
+    const engaged    = nato.filter((c) => (memberEngagements[c.id] ?? 0) > 0)
+
+    const readinessDeltas = nato.map((c) => computeReadinessDelta(c, draft))
+    const avgReadiness    = readinessDeltas.length
+      ? readinessDeltas.reduce((s, x) => s + x, 0) / readinessDeltas.length
+      : 0
+
+    const threatDeltas  = nato.map((c) => computeThreatDelta(c, draft))
+    const avgThreat     = threatDeltas.length
+      ? threatDeltas.reduce((s, x) => s + x, 0) / threatDeltas.length
+      : 0
+    const totalThreat   = threatDeltas.reduce((s, x) => s + x, 0)
+
+    const engagedSat = engaged.length
+      ? engaged.reduce(
+          (s, c) => s + computeSatisfactionDelta(c, draft, true, turn),
+          0,
+        ) / engaged.length
+      : 0
+    const nonEngagedCap = 0.5 + draft.communications / 80
+
+    return {
+      natoCount:       nato.length,
+      candidatesCount: candidates.length,
+      stretchedCount:  stretched.length,
+      engagedCount:    engaged.length,
+      avgReadiness,
+      avgThreat,
+      totalThreat,
+      engagedSat,
+      nonEngagedCap,
+      fiscalReduction: draft.partnerAid / 60,
+      accessionGain:   draft.partnerAid / 100,
+    }
+  }, [draft, countries, memberEngagements, turn])
+
   if (!isOpen) return null
 
   const total = ALLOCATION_KEYS.reduce((sum, k) => sum + draft[k], 0)
   const pc    = budgetState.totalPoliticalCapital
   const overBudget = total > 100
+
+  // Map a slider key to its current projected-effect string and a "vs current"
+  // delta string when the draft differs from the committed allocation.
+  function projectionFor(key: keyof BudgetAllocation): { text: string; delta: string | null; warning?: boolean } {
+    const v = draft[key]
+    const committed = budgetState.allocation[key]
+    const changed = v !== committed
+
+    let text: string
+    let warning = false
+    switch (key) {
+      case 'troopReadiness':
+        if (v < 20) {
+          text = `Below threshold — readiness decays 2 pts/turn`
+          warning = true
+        } else {
+          text = `${fmtSigned(projection.avgReadiness)} avg readiness/turn across ${projection.natoCount} members`
+        }
+        break
+      case 'RAndD':
+        text = `×${rdMultiplier(v).toFixed(2)} crisis resolution multiplier`
+        break
+      case 'cyberDefence':
+        text = `${fmtSigned(projection.avgThreat)} threat/turn per member · ${fmtSigned(projection.totalThreat, 0)} total/turn`
+        break
+      case 'partnerAid':
+        text = projection.stretchedCount > 0
+          ? `−${projection.fiscalReduction.toFixed(2)} fiscal pressure on ${projection.stretchedCount} stretched · +${projection.accessionGain.toFixed(2)} accession/turn × ${projection.candidatesCount}`
+          : `+${projection.accessionGain.toFixed(2)} accession score/turn for ${projection.candidatesCount} candidates`
+        break
+      case 'communications':
+        text = projection.engagedCount > 0
+          ? `${fmtSigned(projection.engagedSat)} satisfaction/turn on ${projection.engagedCount} engaged · ±${projection.nonEngagedCap.toFixed(2)} baseline drift cap on others`
+          : `±${projection.nonEngagedCap.toFixed(2)} satisfaction baseline drift cap (no engaged members)`
+        break
+      default:
+        text = ''
+    }
+
+    const delta = changed ? ` (was ${committed}, now ${v})` : null
+    return { text, delta, warning }
+  }
 
   function handleApply() {
     setFullAllocation(draft)
@@ -119,7 +212,7 @@ export default function BudgetPanel({ isOpen, onClose }: Props) {
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center"
-      style={{ background: 'rgba(0,0,0,0.65)' }}
+      style={{ background: 'rgba(28,25,23,0.55)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }}
       onClick={onClose}
     >
       <div
@@ -127,75 +220,97 @@ export default function BudgetPanel({ isOpen, onClose }: Props) {
         style={{
           width: 520,
           maxHeight: '90vh',
-          background: '#152840',
-          border: '1px solid #1e3a5f',
-          boxShadow: '0 24px 60px rgba(0,0,0,0.5)',
+          background: '#fafaf9',
+          border: '1px solid #e7e5e0',
+          boxShadow: '0 12px 32px rgba(15, 23, 42, 0.12), 0 2px 6px rgba(15, 23, 42, 0.08)',
         }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div
-          className="flex items-center justify-between px-6 py-4 flex-shrink-0"
-          style={{ borderBottom: '1px solid #1e3a5f' }}
+          className="flex items-center justify-between px-6 py-5 flex-shrink-0"
+          style={{ borderBottom: '1px solid #e7e5e0', background: '#f5f3ef' }}
         >
           <div>
-            <h2 className="font-semibold" style={{ fontSize: 16, color: '#e8edf2' }}>
+            <p
+              className="text-xs font-black uppercase tracking-widest mb-1"
+              style={{ color: '#a8a29e', letterSpacing: '0.2em' }}
+            >
+              Treasury
+            </p>
+            <h2
+              className="font-serif font-semibold tracking-tight"
+              style={{ fontSize: 20, color: '#1c1917', letterSpacing: '-0.01em' }}
+            >
               Alliance Budget Allocation
             </h2>
-            <p className="text-xs mt-0.5" style={{ color: '#6b7280' }}>
+            <p className="text-xs mt-1 tabular-nums" style={{ color: '#78716c' }}>
               Turn {turn} · Q{quarter} {year}
             </p>
           </div>
           <button
             onClick={onClose}
-            className="rounded-full flex items-center justify-center text-sm font-bold transition-colors"
-            style={{ width: 28, height: 28, background: '#1e3a5f', color: '#9ca3af' }}
+            className="rounded-full flex items-center justify-center transition-colors"
+            style={{ width: 28, height: 28, background: 'transparent', color: '#78716c', border: '1px solid #e7e5e0' }}
+            onMouseEnter={(e) => {
+              ;(e.currentTarget as HTMLButtonElement).style.background = '#fafaf9'
+              ;(e.currentTarget as HTMLButtonElement).style.color = '#1c1917'
+            }}
+            onMouseLeave={(e) => {
+              ;(e.currentTarget as HTMLButtonElement).style.background = 'transparent'
+              ;(e.currentTarget as HTMLButtonElement).style.color = '#78716c'
+            }}
             aria-label="Close budget panel"
           >
-            ✕
+            <X size={14} strokeWidth={2} />
           </button>
         </div>
 
         {/* Scrollable body */}
-        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
+        <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
           {/* Political Capital */}
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <span className="text-xs font-medium uppercase tracking-wider" style={{ color: '#9ca3af' }}>
+              <span className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider" style={{ color: '#78716c' }}>
+                <Lightbulb size={12} strokeWidth={2} />
                 Political Capital
               </span>
               <span
-                className="text-xs font-bold"
-                style={{ color: pc < 30 ? '#f87171' : '#f59e0b' }}
-                title="Replenishes 10 per turn. Used to engage member states."
+                className="text-xs font-bold tabular-nums"
+                style={{ color: pc < 30 ? '#dc2626' : '#b45309' }}
+                title={`Replenishes ${pcPerTurn} per turn. Used to engage member states.`}
               >
                 {pc} / 100
               </span>
             </div>
-            <div className="h-2 rounded-full" style={{ background: '#0d1f2d' }}>
+            <div className="h-2 rounded-full" style={{ background: '#e7e5e0' }}>
               <div
                 className="h-full rounded-full transition-all duration-300"
-                style={{ width: `${pc}%`, background: pc < 30 ? '#dc2626' : '#f59e0b' }}
+                style={{ width: `${pc}%`, background: pc < 30 ? '#dc2626' : '#b45309' }}
               />
             </div>
-            <p className="text-xs mt-1" style={{ color: '#4b5563' }}>
-              Replenishes 10/turn · Costs {PC_COST_ENGAGE} PC to engage a member state
+            <p className="text-xs mt-1 tabular-nums" style={{ color: '#a8a29e' }}>
+              Replenishes {pcPerTurn}/turn · Costs {PC_COST_ENGAGE} PC to engage a member state
             </p>
           </div>
 
           {/* Allocation sliders */}
-          {SLIDER_CONFIG.map(({ key, label, color, description, effect }) => {
+          {SLIDER_META.map(({ key, label, color, description }) => {
             const val = draft[key]
-            const effectText = effect(val)
-            const isWarning = key === 'troopReadiness' && val < 20
+            const { text: effectText, delta, warning } = projectionFor(key)
             return (
               <div key={key}>
                 <div className="flex items-baseline justify-between mb-1.5">
-                  <span className="text-sm font-medium" style={{ color: '#e8edf2' }}>
+                  <span className="text-sm font-medium" style={{ color: '#1c1917' }}>
                     {label}
                   </span>
                   <span className="text-sm font-bold tabular-nums" style={{ color }}>
                     {val}
+                    {delta && (
+                      <span className="ml-1 font-normal" style={{ color: '#a8a29e' }}>
+                        {delta}
+                      </span>
+                    )}
                   </span>
                 </div>
                 <input
@@ -207,10 +322,11 @@ export default function BudgetPanel({ isOpen, onClose }: Props) {
                   className="w-full cursor-pointer"
                   style={{ accentColor: color }}
                 />
-                <p className="text-xs mt-1" style={{ color: '#4b5563' }}>
+                <p className="text-xs mt-1" style={{ color: '#78716c' }}>
                   {description}
                 </p>
-                <p className="text-xs mt-0.5 font-medium" style={{ color: isWarning ? '#f87171' : color }}>
+                <p className="flex items-center gap-1 text-xs mt-0.5 font-medium" style={{ color: warning ? '#dc2626' : color }}>
+                  {warning && <AlertTriangle size={11} strokeWidth={2.25} />}
                   {effectText}
                 </p>
               </div>
@@ -221,32 +337,33 @@ export default function BudgetPanel({ isOpen, onClose }: Props) {
         {/* Footer */}
         <div
           className="px-6 py-4 flex-shrink-0 space-y-3"
-          style={{ borderTop: '1px solid #1e3a5f' }}
+          style={{ borderTop: '1px solid #e7e5e0', background: '#f5f3ef' }}
         >
           {/* Total bar */}
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <span className="text-xs font-medium uppercase tracking-wider" style={{ color: '#9ca3af' }}>
+              <span className="text-xs font-medium uppercase tracking-wider" style={{ color: '#78716c' }}>
                 Total allocation
               </span>
               <span
                 className="text-xs font-bold tabular-nums"
-                style={{ color: overBudget ? '#f87171' : '#4ade80' }}
+                style={{ color: overBudget ? '#dc2626' : '#15803d' }}
               >
                 {total} / 100
               </span>
             </div>
-            <div className="h-2 rounded-full" style={{ background: '#0d1f2d' }}>
+            <div className="h-2 rounded-full" style={{ background: '#e7e5e0' }}>
               <div
                 className="h-full rounded-full transition-all duration-200"
                 style={{
                   width: `${Math.min(100, total)}%`,
-                  background: overBudget ? '#dc2626' : '#16a34a',
+                  background: overBudget ? '#dc2626' : '#15803d',
                 }}
               />
             </div>
             {overBudget && (
-              <p className="text-xs mt-1" style={{ color: '#f87171' }}>
+              <p className="flex items-center gap-1 text-xs mt-1" style={{ color: '#dc2626' }}>
+                <AlertTriangle size={11} strokeWidth={2.25} />
                 Over budget — reduce allocations
               </p>
             )}
@@ -258,9 +375,16 @@ export default function BudgetPanel({ isOpen, onClose }: Props) {
             disabled={overBudget}
             className="w-full rounded-lg py-2.5 text-sm font-semibold transition-colors"
             style={{
-              background: overBudget ? '#1e3a5f' : '#2563eb',
-              color:      overBudget ? '#4b5563' : '#fff',
+              background: overBudget ? '#f0ede7' : '#004990',
+              color:      overBudget ? '#a8a29e' : '#fff',
               cursor:     overBudget ? 'not-allowed' : 'pointer',
+              boxShadow:  overBudget ? 'none' : '0 1px 2px rgba(0, 73, 144, 0.18), 0 2px 4px rgba(0, 73, 144, 0.12)',
+            }}
+            onMouseEnter={(e) => {
+              if (!overBudget) (e.currentTarget as HTMLButtonElement).style.background = '#003a78'
+            }}
+            onMouseLeave={(e) => {
+              if (!overBudget) (e.currentTarget as HTMLButtonElement).style.background = '#004990'
             }}
           >
             Apply Changes
