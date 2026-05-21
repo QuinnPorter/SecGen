@@ -90,11 +90,14 @@ export default function Sidebar() {
   const [expansionOpen, setExpansionOpen]   = useState(false)
   const [crisisLogOpen, setCrisisLogOpen]   = useState(false)
   const [logDetailId, setLogDetailId]       = useState<string | null>(null)
-  const [savedMeta, setSavedMeta]           = useState<SaveMeta | null>(() => loadMeta())
+  // Start as null on both server and client so SSR markup matches first client
+  // render. The real value is loaded in the effect below after hydration.
+  const [savedMeta, setSavedMeta]           = useState<SaveMeta | null>(null)
 
   const turn           = useGameStore((s) => s.turn)
 
-  // Re-read meta from localStorage after every turn (autosave runs just before re-render)
+  // Re-read meta from localStorage on mount and after every turn (autosave runs
+  // just before re-render). Running in an effect keeps SSR/CSR markup aligned.
   useEffect(() => { setSavedMeta(loadMeta()) }, [turn])
 
   // ── Panel keyboard shortcuts ───────────────────────────────────────────────
