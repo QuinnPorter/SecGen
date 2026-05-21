@@ -11,9 +11,10 @@ const SEV_ORDER: Record<string, number> = { low: 1, medium: 2, high: 3, critical
 
 interface Props {
   onOpenBrief?: () => void
+  onOpenTutorial?: () => void
 }
 
-export default function HUD({ onOpenBrief }: Props) {
+export default function HUD({ onOpenBrief, onOpenTutorial }: Props) {
   const crises         = useGameStore((s) => s.crises)
   const article5Active = useGameStore((s) => s.article5Active)
   const viewMode       = useGameStore((s) => s.viewMode)
@@ -47,7 +48,7 @@ export default function HUD({ onOpenBrief }: Props) {
     >
       {/* Title */}
       <span className="text-sm font-semibold tracking-wide" style={{ color: '#e8edf2' }}>
-        NATO Secretary General
+        SecGen
       </span>
 
       {/* View toggle */}
