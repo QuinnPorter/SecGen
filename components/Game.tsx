@@ -11,6 +11,7 @@ import IntelBrief from './IntelBrief'
 import EndGameScreen from './EndGameScreen'
 import NewGameModal, { type NewGameConfig } from './NewGameModal'
 import TurnSummary from './TurnSummary'
+import TutorialModal from './TutorialModal'
 
 // ── Load-save modal ───────────────────────────────────────────────────────────
 
@@ -122,6 +123,7 @@ export default function Game() {
   const [loadMeta_,    setLoadMeta]   = useState<SaveMeta | null>(null)
   const [showNewGame,  setShowNewGame] = useState(false)
   const [briefPending, setBriefPending] = useState(false)
+  const [tutorialOpen, setTutorialOpen] = useState(false)
   const turn              = useGameStore((s) => s.turn)
   const gameOutcome       = useGameStore((s) => s.gameOutcome)
   const showTurnSummary   = useGameStore((s) => s.showTurnSummary)
@@ -132,6 +134,15 @@ export default function Game() {
   useEffect(() => {
     const meta = loadMeta()
     if (meta) setLoadMeta(meta)
+  }, [])
+
+  // On mount: auto-open tutorial for first-time visitors
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    if (!localStorage.getItem('nato-sg:tutorial-seen')) {
+      setTutorialOpen(true)
+      localStorage.setItem('nato-sg:tutorial-seen', '1')
+    }
   }, [])
 
   // When a new game starts (gameOutcome clears to null), exit review mode
@@ -229,7 +240,10 @@ export default function Game() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh', overflow: 'hidden', background: '#0d1f2d' }}>
-      <HUD onOpenBrief={() => setBriefOpen(true)} />
+      <HUD
+        onOpenBrief={() => setBriefOpen(true)}
+        onOpenTutorial={() => setTutorialOpen(true)}
+      />
       <div style={{ display: 'flex', flex: 1, position: 'relative', overflow: 'hidden' }}>
         <Sidebar />
         <div style={{ flex: 1, overflow: 'hidden' }}>
@@ -255,6 +269,7 @@ export default function Game() {
       {showNewGame && (
         <NewGameModal onStart={handleStart} />
       )}
+      <TutorialModal open={tutorialOpen} onClose={() => setTutorialOpen(false)} />
     </div>
   )
 }
