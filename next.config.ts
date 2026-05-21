@@ -1,20 +1,6 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  images: {
-    // remotePatterns supersedes the deprecated `domains` array in Next.js 15.
-    // The world-atlas CDN is fetched client-side by react-simple-maps (plain
-    // fetch, not <Image>), but listing it here documents the external dependency
-    // and covers any future map-tile or flag-image additions.
-    remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "cdn.jsdelivr.net",
-        pathname: "/npm/world-atlas@2/**",
-      },
-    ],
-  },
-
   async headers() {
     return [
       {

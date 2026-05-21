@@ -1,7 +1,40 @@
 'use client'
 
-export default function HUD() {
-  const activeCrises = 0 // wired in Phase 4
+import { useGameStore, type ViewMode } from '@/lib/gameState'
+
+const VIEW_MODES: { id: ViewMode; label: string }[] = [
+  { id: 'world',     label: 'World' },
+  { id: 'nato-area', label: 'NATO Area' },
+]
+
+const SEV_ORDER: Record<string, number> = { low: 1, medium: 2, high: 3, critical: 4 }
+
+interface Props {
+  onOpenBrief?: () => void
+}
+
+export default function HUD({ onOpenBrief }: Props) {
+  const crises         = useGameStore((s) => s.crises)
+  const article5Active = useGameStore((s) => s.article5Active)
+  const viewMode       = useGameStore((s) => s.viewMode)
+  const setViewMode    = useGameStore((s) => s.setViewMode)
+
+  const activeCrisesList = crises.filter((c) => c.status === 'active')
+  const activeCrises     = activeCrisesList.length
+  const worstSev         = activeCrisesList.reduce<string>(
+    (worst, c) => (SEV_ORDER[c.severity] ?? 0) > (SEV_ORDER[worst] ?? 0) ? c.severity : worst,
+    'none',
+  )
+  const crisisTextColor =
+    activeCrises === 0        ? '#4b5563'
+    : worstSev === 'critical' ? '#ef4444'
+    : worstSev === 'high'     ? '#f87171'
+    : '#f59e0b'
+  const crisisBadgeBg =
+    activeCrises === 0        ? '#374151'
+    : worstSev === 'critical' ? '#7f1d1d'
+    : worstSev === 'high'     ? '#991b1b'
+    : '#78350f'
 
   return (
     <header
@@ -17,25 +50,69 @@ export default function HUD() {
         NATO Secretary General
       </span>
 
+      {/* View toggle */}
+      <div
+        className="flex rounded-md overflow-hidden"
+        style={{ border: '1px solid #1e3a5f' }}
+      >
+        {VIEW_MODES.map(({ id, label }) => {
+          const active = viewMode === id
+          return (
+            <button
+              key={id}
+              onClick={() => setViewMode(id)}
+              className="text-xs font-medium px-3 py-1 transition-colors"
+              style={{
+                background: active ? '#2563eb' : 'transparent',
+                color:      active ? '#fff'     : '#6b7280',
+              }}
+            >
+              {label}
+            </button>
+          )
+        })}
+      </div>
+
       {/* Right cluster */}
       <div className="flex items-center gap-4">
-        {/* Crisis indicator */}
-        <div className="flex items-center gap-1.5">
+        {/* Article 5 badge */}
+        {article5Active && (
+          <button
+            onClick={onOpenBrief}
+            className="animate-pulse flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-black uppercase tracking-wider"
+            style={{
+              background: '#7f1d1d',
+              border: '1px solid #dc2626',
+              color: '#fca5a5',
+              letterSpacing: '0.1em',
+            }}
+          >
+            <span style={{ fontSize: 8 }}>⬤</span>
+            Article 5 Active
+          </button>
+        )}
+
+        {/* Crisis indicator — clickable, severity-coloured */}
+        <button
+          onClick={activeCrises > 0 ? onOpenBrief : undefined}
+          className={`flex items-center gap-1.5${worstSev === 'critical' && activeCrises > 0 ? ' animate-pulse' : ''}`}
+          style={{ cursor: activeCrises > 0 ? 'pointer' : 'default', background: 'none', border: 'none', padding: 0 }}
+        >
           <span
             className="text-xs font-medium"
-            style={{ color: activeCrises > 0 ? '#f87171' : '#4b5563' }}
+            style={{ color: crisisTextColor }}
           >
             {activeCrises > 0 ? `${activeCrises} active crisis` : 'No active crises'}
           </span>
           {activeCrises > 0 && (
             <span
               className="rounded-full text-xs font-bold px-1.5 py-0.5"
-              style={{ background: '#991b1b', color: '#fff' }}
+              style={{ background: crisisBadgeBg, color: '#fff' }}
             >
               {activeCrises}
             </span>
           )}
-        </div>
+        </button>
 
         {/* Settings gear — non-functional */}
         <button

@@ -1,3 +1,9 @@
+// ── Political capital action costs ────────────────────────────────────────────
+
+export const PC_COST_ENGAGE            = 15  // engageMember
+export const PC_COST_DIALOGUE          = 20  // initiateDialogue
+export const PC_COST_ADVANCE_ACCESSION = 25  // advanceAccession / advanceAccession
+
 // Maps ISO 3166-1 numeric codes (as strings, with leading zeros) to our alpha-3 IDs.
 // These are the feature.id values in the world-atlas 110m TopoJSON.
 // Malta (470) and Kosovo (XKX) have no entry — Malta is sub-pixel at 110m,
@@ -58,6 +64,23 @@ export const NUMERIC_TO_ALPHA3: Record<string, string> = {
   '434': 'LBY',
   '760': 'SYR',
 }
+
+// NATO members on the eastern flank — elevated sensitivity to candidate threat levels
+export const EASTERN_MEMBERS = ['EST', 'LVA', 'LTU', 'POL', 'ROU', 'BGR']
+
+// NATO member neighbours for each likely accession candidate.
+// Only pairs that share a physical land border are listed.
+export const CANDIDATE_NATO_BORDERS: Record<string, string[]> = {
+  UKR: ['POL', 'ROU', 'HUN', 'SVK'],
+  GEO: ['TUR'],
+  BIH: ['HRV', 'MNE'],
+  XKX: ['ALB', 'MKD', 'MNE'],
+  SRB: ['HUN', 'HRV', 'ROU', 'BGR', 'MKD', 'MNE'],
+  MDA: ['ROU'],
+}
+
+// Candidates that share a border with an adversary (Russia/Belarus)
+export const ADVERSARY_BORDERING_CANDIDATES = ['UKR', 'GEO']
 
 export const ALIGNMENT_COLORS: Record<string, string> = {
   nato:      '#1d4ed8',
