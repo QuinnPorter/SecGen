@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react'
 import { useGameStore } from '@/lib/gameState'
+import { ShieldCheck, Zap, AlertTriangle, Map, Globe, FileText, type LucideIcon } from 'lucide-react'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -14,12 +15,14 @@ const QUARTER_LABEL: Record<number, string> = { 1: 'Q1', 2: 'Q2', 3: 'Q3', 4: 'Q
 // ── Row components ────────────────────────────────────────────────────────────
 
 function Row({
-  icon,
+  Icon,
+  iconColor,
   label,
   value,
   valueColor,
 }: {
-  icon: string
+  Icon: LucideIcon
+  iconColor?: string
   label: string
   value: string
   valueColor?: string
@@ -27,12 +30,12 @@ function Row({
   return (
     <div className="flex items-center justify-between gap-3 py-1.5">
       <div className="flex items-center gap-2 min-w-0">
-        <span style={{ fontSize: 13, lineHeight: 1, flexShrink: 0 }}>{icon}</span>
-        <span className="text-xs truncate" style={{ color: '#6b7280' }}>{label}</span>
+        <Icon size={13} strokeWidth={2} color={iconColor ?? '#78716c'} style={{ flexShrink: 0 }} />
+        <span className="text-xs truncate" style={{ color: '#57534e' }}>{label}</span>
       </div>
       <span
         className="text-xs font-semibold tabular-nums flex-shrink-0"
-        style={{ color: valueColor ?? '#e8edf2' }}
+        style={{ color: valueColor ?? '#1c1917' }}
       >
         {value}
       </span>
@@ -67,7 +70,7 @@ export default function TurnSummary() {
   } = data
 
   const readinessDeltaColor =
-    readinessDelta > 0 ? '#4ade80' : readinessDelta < 0 ? '#f87171' : '#6b7280'
+    readinessDelta > 0 ? '#15803d' : readinessDelta < 0 ? '#dc2626' : '#78716c'
   const readinessDeltaStr =
     readinessDelta > 0 ? `+${readinessDelta}` : String(readinessDelta)
 
@@ -94,16 +97,16 @@ export default function TurnSummary() {
           transform: 'translateX(-50%)',
           width: 480,
           zIndex: 60,
-          background: '#0d1f2d',
-          border: '1px solid #1e3a5f',
+          background: '#fafaf9',
+          border: '1px solid #e7e5e0',
           borderRadius: 12,
-          boxShadow: '0 16px 48px rgba(0,0,0,0.7)',
+          boxShadow: '0 12px 32px rgba(15, 23, 42, 0.12), 0 2px 6px rgba(15, 23, 42, 0.08)',
           overflow: 'hidden',
           cursor: 'pointer',
         }}
       >
         {/* Progress bar */}
-        <div style={{ height: 3, background: '#060f1a', position: 'relative' }}>
+        <div style={{ height: 3, background: '#f0ede7', position: 'relative' }}>
           <div
             className="ts-progress-bar"
             style={{
@@ -111,37 +114,38 @@ export default function TurnSummary() {
               top: 0,
               left: 0,
               height: '100%',
-              background: '#2563eb',
+              background: '#004990',
             }}
           />
         </div>
 
         {/* Header */}
         <div
-          className="flex items-center justify-between px-5 pt-4 pb-2"
-          style={{ borderBottom: '1px solid #0f2a40' }}
+          className="flex items-center justify-between px-5 pt-4 pb-3"
+          style={{ borderBottom: '1px solid #e7e5e0', background: '#f5f3ef' }}
         >
           <div>
             <p
               className="text-xs font-black uppercase tracking-widest"
-              style={{ color: '#374151', letterSpacing: '0.18em' }}
+              style={{ color: '#a8a29e', letterSpacing: '0.2em' }}
             >
               Wire Report
             </p>
-            <p className="font-semibold" style={{ fontSize: 14, color: '#e8edf2', marginTop: 1 }}>
+            <p className="font-serif font-semibold tabular-nums" style={{ fontSize: 17, color: '#1c1917', marginTop: 2, letterSpacing: '-0.01em' }}>
               {QUARTER_LABEL[prevQuarter]} {prevYear} — End of Quarter
             </p>
           </div>
-          <span className="text-xs" style={{ color: '#374151' }}>Click to dismiss</span>
+          <span className="text-xs" style={{ color: '#a8a29e' }}>Click to dismiss</span>
         </div>
 
         {/* Body */}
-        <div className="px-5 pb-4 pt-2 space-y-0.5">
+        <div className="px-5 pb-4 pt-3 space-y-0.5">
 
           {/* Readiness delta */}
           {Math.abs(readinessDelta) >= 1 && (
             <Row
-              icon="🛡"
+              Icon={ShieldCheck}
+              iconColor={readinessDeltaColor}
               label="Alliance readiness"
               value={readinessDeltaStr}
               valueColor={readinessDeltaColor}
@@ -150,19 +154,21 @@ export default function TurnSummary() {
 
           {/* PC replenished */}
           <Row
-            icon="⚡"
+            Icon={Zap}
+            iconColor="#004990"
             label="Political capital replenished"
             value={`+${pcReplenished} PC`}
-            valueColor="#93c5fd"
+            valueColor="#004990"
           />
 
           {/* Upcoming crises */}
           {upcomingCrises > 0 && (
             <Row
-              icon="⚠"
+              Icon={AlertTriangle}
+              iconColor="#b45309"
               label="Situations developing"
               value={`${upcomingCrises} incoming`}
-              valueColor="#f59e0b"
+              valueColor="#b45309"
             />
           )}
 
@@ -170,10 +176,11 @@ export default function TurnSummary() {
           {accessionChanges.map(({ countryName, scoreDelta }) => (
             <Row
               key={countryName}
-              icon="🗺"
+              Icon={Map}
+              iconColor={scoreDelta > 0 ? '#15803d' : '#dc2626'}
               label={`${countryName} accession`}
               value={scoreDelta > 0 ? `+${scoreDelta} score` : `${scoreDelta} score`}
-              valueColor={scoreDelta > 0 ? '#4ade80' : '#f87171'}
+              valueColor={scoreDelta > 0 ? '#15803d' : '#dc2626'}
             />
           ))}
 
@@ -181,10 +188,11 @@ export default function TurnSummary() {
           {alignmentChanges.map(({ countryName, from, to }) => (
             <Row
               key={countryName}
-              icon="🌐"
+              Icon={Globe}
+              iconColor="#b45309"
               label={countryName}
               value={`${from} → ${to}`}
-              valueColor="#fbbf24"
+              valueColor="#b45309"
             />
           ))}
 
@@ -194,10 +202,10 @@ export default function TurnSummary() {
               key={i}
               className="py-1.5 flex items-start gap-2"
             >
-              <span style={{ fontSize: 13, lineHeight: 1.4, flexShrink: 0 }}>📋</span>
+              <FileText size={13} strokeWidth={2} color="#78716c" style={{ marginTop: 1, flexShrink: 0 }} />
               <span
                 className="text-xs leading-relaxed"
-                style={{ color: '#9ca3af' }}
+                style={{ color: '#57534e' }}
               >
                 {text}
               </span>

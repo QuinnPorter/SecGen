@@ -1,31 +1,93 @@
 @import "tailwindcss";
 
 :root {
-  --bg-base: #0d1f2d;
-  --bg-surface: #152840;
-  --text-primary: #e8edf2;
-  --nato-blue: #2563eb;
-  --adversary-red: #dc2626;
-  --neutral-grey: #4b5563;
-  --candidate-blue: #93c5fd;
+  /* Map / dark world stage — unchanged */
+  --map-base: #0d1f2d;
+
+  /* Light chrome palette */
+  --bg-panel: #fafaf9;          /* sidebar, modals, country panel */
+  --bg-surface: #f5f3ef;        /* secondary surface, hover */
+  --bg-tertiary: #f0ede7;       /* inner cards (IntelBrief body) */
+  --bg-hud: #ebe7e0;            /* HUD top bar (warm pale gray) */
+
+  /* Text */
+  --text-primary: #1c1917;      /* stone-900 */
+  --text-secondary: #57534e;    /* stone-600 */
+  --text-muted: #78716c;        /* stone-500 */
+  --text-faint: #a8a29e;        /* stone-400 */
+
+  /* Borders */
+  --border-hairline: #e7e5e0;
+  --border-hud: #d6d3d1;
+
+  /* NATO accent (deeper / authentic) */
+  --nato-blue: #004990;
+  --nato-blue-hover: #003a78;
+  --nato-blue-soft: #e0eaf5;    /* tint background for selected option */
+
+  /* Auxiliary */
+  --candidate-blue: #7aa3d4;    /* UI only — map fills unchanged */
+  --adversary-red: #b91c1c;
+  --adversary-red-soft: #fef2f2;
+
+  /* Saturated state colors (retained for at-a-glance game clarity) */
+  --success: #15803d;
+  --warning: #b45309;
+  --critical: #dc2626;
+  --critical-light: #f87171;
+
+  /* Elevation */
+  --shadow-panel: 0 1px 2px rgba(15, 23, 42, 0.04), 0 4px 12px rgba(15, 23, 42, 0.06);
+  --shadow-modal: 0 12px 32px rgba(15, 23, 42, 0.12), 0 2px 6px rgba(15, 23, 42, 0.08);
+  --backdrop: rgba(28, 25, 23, 0.55);
+
+  /* Legacy variable name kept for backwards compat — points at panel bg */
+  --bg-base: #fafaf9;
 }
 
 @theme inline {
-  --color-bg-base: var(--bg-base);
+  --color-map-base: var(--map-base);
+  --color-bg-panel: var(--bg-panel);
   --color-bg-surface: var(--bg-surface);
+  --color-bg-tertiary: var(--bg-tertiary);
+  --color-bg-hud: var(--bg-hud);
   --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+  --color-text-faint: var(--text-faint);
+  --color-border-hairline: var(--border-hairline);
   --color-nato-blue: var(--nato-blue);
-  --color-adversary-red: var(--adversary-red);
-  --color-neutral-grey: var(--neutral-grey);
+  --color-nato-blue-hover: var(--nato-blue-hover);
+  --color-nato-blue-soft: var(--nato-blue-soft);
   --color-candidate-blue: var(--candidate-blue);
+  --color-adversary-red: var(--adversary-red);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-critical: var(--critical);
+
+  --font-sans: var(--font-plex-sans);
+  --font-serif: var(--font-plex-serif);
+  --font-mono: var(--font-plex-mono);
 }
 
 html,
 body {
   height: 100%;
-  background-color: var(--bg-base);
+  background-color: var(--bg-panel);
   color: var(--text-primary);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-plex-sans), system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+.font-serif {
+  font-family: var(--font-plex-serif), Georgia, "Times New Roman", serif;
+}
+
+.font-mono {
+  font-family: var(--font-plex-mono), ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
 }
 
 @keyframes accession-pulse {

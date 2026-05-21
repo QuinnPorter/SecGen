@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 import { useGameStore, type Country, type Crisis, type CrisisOption } from '@/lib/gameState'
 import { SCENARIOS, type ScenarioDefinition } from '@/lib/scenarios'
+import { AlertTriangle, Check, RotateCcw } from 'lucide-react'
 
 // ── Flag emoji (alpha-3 → Regional Indicator pair) ────────────────────────────
 
@@ -26,11 +27,11 @@ function flagEmoji(id: string): string {
 
 // ── Severity config ───────────────────────────────────────────────────────────
 
-const SEV_CONFIG: Record<string, { label: string; color: string; border: string; pulse: boolean }> = {
-  low:      { label: 'LOW',      color: '#6b7280', border: '#374151', pulse: false },
-  medium:   { label: 'MEDIUM',   color: '#f59e0b', border: '#92400e', pulse: false },
-  high:     { label: 'HIGH',     color: '#f87171', border: '#991b1b', pulse: false },
-  critical: { label: 'CRITICAL', color: '#ef4444', border: '#dc2626', pulse: true  },
+const SEV_CONFIG: Record<string, { label: string; color: string; bg: string; border: string; pulse: boolean }> = {
+  low:      { label: 'LOW',      color: '#57534e', bg: '#f5f3ef', border: '#a8a29e', pulse: false },
+  medium:   { label: 'MEDIUM',   color: '#b45309', bg: '#fef3c7', border: '#b45309', pulse: false },
+  high:     { label: 'HIGH',     color: '#b91c1c', bg: '#fef2f2', border: '#b91c1c', pulse: false },
+  critical: { label: 'CRITICAL', color: '#dc2626', bg: '#fef2f2', border: '#dc2626', pulse: true  },
 }
 
 // ── Option button ─────────────────────────────────────────────────────────────
@@ -53,28 +54,28 @@ function OptionBtn({
       onClick={() => !disabled && onClick()}
       className="w-full text-left rounded-lg px-3 py-2.5"
       style={{
-        background:  selected ? '#172554' : canAfford ? '#0d1f2d' : '#090f17',
-        border:      `1px solid ${selected ? '#3b82f6' : canAfford ? '#1e3a5f' : '#0f1f30'}`,
+        background:  selected ? '#e0eaf5' : '#fafaf9',
+        border:      `1px solid ${selected ? '#004990' : '#e7e5e0'}`,
         cursor:      disabled ? 'not-allowed' : 'pointer',
-        opacity:     disabled ? 0.45 : 1,
+        opacity:     disabled ? 0.55 : 1,
         transition:  'background 0.12s, border-color 0.12s',
       }}
     >
       <div className="flex items-center justify-between gap-3 mb-1">
         <span
           className="text-xs font-semibold"
-          style={{ color: selected ? '#93c5fd' : canAfford ? '#e8edf2' : '#4b5563' }}
+          style={{ color: selected ? '#004990' : canAfford ? '#1c1917' : '#a8a29e' }}
         >
           {option.label}
         </span>
         <span
-          className="text-xs font-mono flex-shrink-0"
-          style={{ color: option.capitalCost === 0 ? '#4ade80' : canAfford ? '#f59e0b' : '#374151' }}
+          className="text-xs font-mono tabular-nums flex-shrink-0"
+          style={{ color: option.capitalCost === 0 ? '#15803d' : canAfford ? '#b45309' : '#a8a29e' }}
         >
           {option.capitalCost === 0 ? 'Free' : `${option.capitalCost} PC`}
         </span>
       </div>
-      <p className="text-xs leading-relaxed" style={{ color: selected ? '#7dd3fc' : '#6b7280' }}>
+      <p className="text-xs leading-relaxed" style={{ color: selected ? '#003a78' : '#57534e' }}>
         {option.description}
       </p>
     </button>
@@ -110,7 +111,12 @@ function CrisisCard({
   return (
     <div
       className="rounded-lg overflow-hidden"
-      style={{ background: '#0a1929', border: `1px solid #1e3a5f`, borderLeft: `3px solid ${sev.border}` }}
+      style={{
+        background: '#fafaf9',
+        border: '1px solid #e7e5e0',
+        borderLeft: `4px solid ${sev.border}`,
+        boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
+      }}
     >
       {/* Card header */}
       <div className="px-4 pt-4 pb-3 space-y-2.5">
@@ -119,15 +125,15 @@ function CrisisCard({
         <div className="flex items-start gap-2.5">
           <span
             className={`text-xs font-black px-1.5 py-0.5 rounded tracking-wider flex-shrink-0 mt-0.5 ${sev.pulse ? 'animate-pulse' : ''}`}
-            style={{ background: '#0d1f2d', color: sev.color, border: `1px solid ${sev.border}` }}
+            style={{ background: sev.bg, color: sev.color, border: `1px solid ${sev.border}` }}
           >
             {sev.label}
           </span>
           <div className="min-w-0">
-            <p className="text-sm font-semibold leading-snug" style={{ color: '#e8edf2' }}>
+            <p className="font-serif font-semibold leading-snug" style={{ color: '#1c1917', fontSize: 15 }}>
               {crisis.title}
             </p>
-            <p className="text-xs mt-0.5" style={{ color: '#6b7280' }}>
+            <p className="text-xs mt-1" style={{ color: '#78716c' }}>
               {flagEmoji(crisis.affectedCountryId)}{' '}
               {country?.name ?? crisis.affectedCountryId}
             </p>
@@ -135,20 +141,20 @@ function CrisisCard({
         </div>
 
         {/* Description */}
-        <p className="text-xs leading-relaxed" style={{ color: '#9ca3af' }}>
+        <p className="text-xs leading-relaxed" style={{ color: '#57534e' }}>
           {crisis.description}
         </p>
 
         {/* Countdown */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 tabular-nums">
           <span
             className="text-xs font-medium"
-            style={{ color: imminent ? '#f87171' : '#6b7280' }}
+            style={{ color: imminent ? '#dc2626' : '#78716c' }}
           >
             Turns to resolve: {turnsLeft}
           </span>
           {imminent && (
-            <span className="text-xs font-semibold" style={{ color: '#f87171' }}>
+            <span className="text-xs font-semibold" style={{ color: '#dc2626' }}>
               — escalates next turn if unresolved
             </span>
           )}
@@ -157,7 +163,7 @@ function CrisisCard({
 
       {/* Options */}
       <div className="px-4 pb-3 space-y-1.5">
-        <p className="text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: '#374151' }}>
+        <p className="text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: '#a8a29e' }}>
           Response options
         </p>
         {crisis.options.map((opt) => (
@@ -174,20 +180,23 @@ function CrisisCard({
       {/* Defer row */}
       <div
         className="px-4 py-2.5 flex items-center justify-between gap-4"
-        style={{ borderTop: '1px solid #0d1f2d' }}
+        style={{ borderTop: '1px solid #e7e5e0', background: '#f5f3ef' }}
       >
         {deferred ? (
-          <span className="text-xs font-medium" style={{ color: '#f59e0b' }}>
-            ⟳ Deferred — matter unresolved this turn
+          <span className="flex items-center gap-1.5 text-xs font-medium" style={{ color: '#b45309' }}>
+            <RotateCcw size={11} strokeWidth={2.25} />
+            Deferred — matter unresolved this turn
           </span>
         ) : chosenOptionId ? (
-          <span className="text-xs font-medium" style={{ color: '#4ade80' }}>
-            ✓ Response selected — applied on close
+          <span className="flex items-center gap-1.5 text-xs font-medium" style={{ color: '#15803d' }}>
+            <Check size={12} strokeWidth={2.5} />
+            Response selected — applied on close
           </span>
         ) : (
-          <span className="text-xs" style={{ color: imminent ? '#f87171' : '#374151' }}>
+          <span className="flex items-center gap-1.5 text-xs" style={{ color: imminent ? '#dc2626' : '#a8a29e' }}>
+            {imminent && <AlertTriangle size={11} strokeWidth={2.25} />}
             {imminent
-              ? '⚠ Deferring will trigger auto-escalation'
+              ? 'Deferring will trigger auto-escalation'
               : 'You may defer this matter without responding'}
           </span>
         )}
@@ -196,9 +205,15 @@ function CrisisCard({
           <button
             onClick={onDefer}
             className="text-xs font-medium px-3 py-1 rounded flex-shrink-0 transition-colors"
-            style={{ background: '#0d1f2d', color: '#4b5563', border: '1px solid #1e3a5f' }}
-            onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.color = '#9ca3af')}
-            onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.color = '#4b5563')}
+            style={{ background: '#fafaf9', color: '#57534e', border: '1px solid #e7e5e0' }}
+            onMouseEnter={(e) => {
+              ;(e.currentTarget as HTMLButtonElement).style.color = '#1c1917'
+              ;(e.currentTarget as HTMLButtonElement).style.borderColor = '#78716c'
+            }}
+            onMouseLeave={(e) => {
+              ;(e.currentTarget as HTMLButtonElement).style.color = '#57534e'
+              ;(e.currentTarget as HTMLButtonElement).style.borderColor = '#e7e5e0'
+            }}
           >
             Defer
           </button>
@@ -208,9 +223,9 @@ function CrisisCard({
           <button
             onClick={onReset}
             className="text-xs px-2 py-0.5 rounded flex-shrink-0"
-            style={{ color: '#374151', background: 'transparent' }}
-            onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.color = '#6b7280')}
-            onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.color = '#374151')}
+            style={{ color: '#a8a29e', background: 'transparent' }}
+            onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.color = '#57534e')}
+            onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.color = '#a8a29e')}
           >
             Change
           </button>
@@ -235,9 +250,10 @@ function ScenarioCard({
     <div
       className="rounded-lg overflow-hidden"
       style={{
-        background: '#0a1929',
-        border: '1px solid #1e3a5f',
-        borderLeft: '3px solid #2563eb',
+        background: '#fafaf9',
+        border: '1px solid #e7e5e0',
+        borderLeft: '4px solid #004990',
+        boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
       }}
     >
       {/* Card header */}
@@ -245,22 +261,22 @@ function ScenarioCard({
         <div className="flex items-start gap-2.5">
           <span
             className="text-xs font-black px-1.5 py-0.5 rounded tracking-wider flex-shrink-0 mt-0.5"
-            style={{ background: '#172554', color: '#93c5fd', border: '1px solid #2563eb' }}
+            style={{ background: '#e0eaf5', color: '#004990', border: '1px solid #004990' }}
           >
             STRATEGIC OPPORTUNITY
           </span>
         </div>
-        <p className="text-sm font-semibold leading-snug" style={{ color: '#e8edf2' }}>
+        <p className="font-serif font-semibold leading-snug" style={{ color: '#1c1917', fontSize: 15 }}>
           {scenario.title}
         </p>
-        <p className="text-xs leading-relaxed" style={{ color: '#9ca3af' }}>
+        <p className="text-xs leading-relaxed" style={{ color: '#57534e' }}>
           {scenario.briefing}
         </p>
       </div>
 
       {/* Choices */}
       <div className="px-4 pb-3 space-y-1.5">
-        <p className="text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: '#374151' }}>
+        <p className="text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: '#a8a29e' }}>
           Your response
         </p>
         {scenario.choices.map((choice) => {
@@ -271,23 +287,23 @@ function ScenarioCard({
               onClick={() => onChoose(choice.id)}
               className="w-full text-left rounded-lg px-3 py-2.5"
               style={{
-                background:    selected ? '#172554' : '#0d1f2d',
-                border:        `1px solid ${selected ? '#3b82f6' : '#1e3a5f'}`,
+                background:    selected ? '#e0eaf5' : '#fafaf9',
+                border:        `1px solid ${selected ? '#004990' : '#e7e5e0'}`,
                 cursor:        'pointer',
                 transition:    'background 0.12s, border-color 0.12s',
               }}
             >
               <p
                 className="text-xs font-semibold mb-1"
-                style={{ color: selected ? '#93c5fd' : '#e8edf2' }}
+                style={{ color: selected ? '#004990' : '#1c1917' }}
               >
                 {choice.label}
               </p>
-              <p className="text-xs leading-relaxed" style={{ color: selected ? '#7dd3fc' : '#6b7280' }}>
+              <p className="text-xs leading-relaxed" style={{ color: selected ? '#003a78' : '#57534e' }}>
                 {choice.description}
               </p>
               {selected && (
-                <p className="text-xs mt-1.5 italic" style={{ color: '#4b5563' }}>
+                <p className="text-xs mt-1.5 italic" style={{ color: '#57534e' }}>
                   {choice.consequences}
                 </p>
               )}
@@ -299,14 +315,15 @@ function ScenarioCard({
       {/* Status row */}
       <div
         className="px-4 py-2.5"
-        style={{ borderTop: '1px solid #0d1f2d' }}
+        style={{ borderTop: '1px solid #e7e5e0', background: '#f5f3ef' }}
       >
         {chosenChoiceId ? (
-          <span className="text-xs font-medium" style={{ color: '#4ade80' }}>
-            ✓ Decision recorded — applied on close
+          <span className="flex items-center gap-1.5 text-xs font-medium" style={{ color: '#15803d' }}>
+            <Check size={12} strokeWidth={2.5} />
+            Decision recorded — applied on close
           </span>
         ) : (
-          <span className="text-xs" style={{ color: '#93c5fd' }}>
+          <span className="text-xs" style={{ color: '#004990' }}>
             A decision is required before closing this brief.
           </span>
         )}
@@ -420,47 +437,47 @@ export default function IntelBrief({ isOpen, onClose }: Props) {
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center"
-      style={{ background: 'rgba(0,0,0,0.8)' }}
+      style={{ background: 'rgba(28,25,23,0.55)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }}
     >
       <div
         className="flex flex-col rounded-xl"
         style={{
           width: 620,
           maxHeight: '80vh',
-          background: '#0d1f2d',
-          border: '1px solid #1e3a5f',
-          boxShadow: '0 32px 80px rgba(0,0,0,0.75)',
+          background: '#fafaf9',
+          border: '1px solid #e7e5e0',
+          boxShadow: '0 12px 32px rgba(15, 23, 42, 0.12), 0 2px 6px rgba(15, 23, 42, 0.08)',
           overflow: 'hidden',
         }}
       >
         {/* ── Header ── */}
         <div
           className="flex-shrink-0 px-6 py-5"
-          style={{ borderBottom: '1px solid #1e3a5f', background: '#060f1a' }}
+          style={{ borderBottom: '1px solid #e7e5e0', background: '#f5f3ef' }}
         >
           <div className="flex items-start justify-between gap-4">
             <div>
               <p
                 className="text-xs font-black uppercase tracking-widest mb-2"
-                style={{ color: '#7f1d1d', letterSpacing: '0.2em' }}
+                style={{ color: '#b91c1c', letterSpacing: '0.2em' }}
               >
                 ▌ Classified — Secretary General Eyes Only
               </p>
-              <h2 className="font-bold leading-tight" style={{ fontSize: 17, color: '#e8edf2' }}>
+              <h2 className="font-serif font-semibold leading-tight tabular-nums" style={{ fontSize: 22, color: '#1c1917', letterSpacing: '-0.01em' }}>
                 Q{quarter} {year} — Intelligence Brief
               </h2>
-              <p className="text-sm mt-1.5 font-medium" style={{ color: '#f87171' }}>
+              <p className="text-sm mt-1.5 font-medium" style={{ color: '#b91c1c' }}>
                 {activeCrises.length + activeScenarioDefs.length} matter{(activeCrises.length + activeScenarioDefs.length) !== 1 ? 's' : ''} requiring your attention
               </p>
             </div>
             <div
               className="flex-shrink-0 rounded px-2.5 py-1.5 text-center"
-              style={{ background: '#1a0a0a', border: '1px solid #7f1d1d', minWidth: 64 }}
+              style={{ background: '#fef2f2', border: '1px solid #dc2626', minWidth: 64 }}
             >
-              <p className="text-xs font-black" style={{ color: '#f87171' }}>
+              <p className="font-mono font-black tabular-nums" style={{ color: '#b91c1c', fontSize: 18 }}>
                 {activeCrises.length + activeScenarioDefs.length}
               </p>
-              <p className="text-xs" style={{ color: '#7f1d1d', fontSize: 9 }}>
+              <p className="text-xs" style={{ color: '#b91c1c', fontSize: 9, letterSpacing: '0.1em' }}>
                 ACTIVE
               </p>
             </div>
@@ -469,10 +486,10 @@ export default function IntelBrief({ isOpen, onClose }: Props) {
 
         {/* ── Scrollable crisis + scenario stack ── */}
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3"
-          style={{ background: '#0a1522' }}
+          style={{ background: '#f0ede7' }}
         >
           {activeCrises.length === 0 && activeScenarioDefs.length === 0 ? (
-            <p className="text-sm text-center py-12" style={{ color: '#374151' }}>
+            <p className="text-sm text-center py-12" style={{ color: '#a8a29e' }}>
               No matters requiring immediate attention.
             </p>
           ) : (
@@ -509,9 +526,9 @@ export default function IntelBrief({ isOpen, onClose }: Props) {
         {/* ── Footer ── */}
         <div
           className="flex-shrink-0 px-6 py-4 flex items-center justify-between gap-4"
-          style={{ borderTop: '1px solid #1e3a5f', background: '#060f1a' }}
+          style={{ borderTop: '1px solid #e7e5e0', background: '#f5f3ef' }}
         >
-          <p className="text-xs" style={{ color: allHandled ? '#374151' : '#f59e0b' }}>
+          <p className="text-xs" style={{ color: allHandled ? '#a8a29e' : '#b45309' }}>
             {allHandled
               ? 'All matters addressed. You may close this brief.'
               : `${undecided} matter${undecided !== 1 ? 's' : ''} still require a decision.`}
@@ -520,10 +537,13 @@ export default function IntelBrief({ isOpen, onClose }: Props) {
             onClick={handleClose}
             className="flex-shrink-0 rounded-lg px-5 py-2 text-sm font-semibold transition-all"
             style={{
-              background: '#2563eb',
+              background: '#004990',
               color:      '#fff',
               cursor:     'pointer',
+              boxShadow: '0 1px 2px rgba(0, 73, 144, 0.18), 0 2px 4px rgba(0, 73, 144, 0.12)',
             }}
+            onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.background = '#003a78')}
+            onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.background = '#004990')}
           >
             Close Brief
           </button>

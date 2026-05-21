@@ -10,15 +10,16 @@ import {
 } from '@/lib/gameState'
 import { computeAccessionScore } from '@/lib/accessionHelpers'
 import { PC_COST_DIALOGUE, PC_COST_ADVANCE_ACCESSION } from '@/lib/constants'
+import { X, AlertTriangle, Lightbulb, ChevronUp, ChevronDown, Check, Minus, RotateCcw } from 'lucide-react'
 
 // ─── Stage display config ────────────────────────────────────────────────────
 
 const STAGE_CONFIG: Record<AccessionStage, { label: string; color: string; bg: string }> = {
-  none:       { label: 'None',       color: '#6b7280', bg: '#1f2937' },
-  dialogue:   { label: 'Dialogue',   color: '#9ca3af', bg: '#374151' },
-  map:        { label: 'MAP',        color: '#f59e0b', bg: '#451a03' },
-  invitation: { label: 'Invitation', color: '#93c5fd', bg: '#1e3a5f' },
-  acceding:   { label: 'Acceding',   color: '#4ade80', bg: '#14532d' },
+  none:       { label: 'None',       color: '#78716c', bg: '#f5f3ef' },
+  dialogue:   { label: 'Dialogue',   color: '#57534e', bg: '#f0ede7' },
+  map:        { label: 'MAP',        color: '#92400e', bg: '#fef3c7' },
+  invitation: { label: 'Invitation', color: '#004990', bg: '#e0eaf5' },
+  acceding:   { label: 'Acceding',   color: '#15803d', bg: '#dcfce7' },
 }
 
 const ADVANCE_LABEL: Partial<Record<AccessionStage, string>> = {
@@ -30,9 +31,9 @@ const ADVANCE_LABEL: Partial<Record<AccessionStage, string>> = {
 // ─── Shared primitives ───────────────────────────────────────────────────────
 
 function ScoreBar({ score }: { score: number }) {
-  const color = score >= 80 ? '#4ade80' : score >= 50 ? '#f59e0b' : '#3b82f6'
+  const color = score >= 80 ? '#15803d' : score >= 50 ? '#b45309' : '#004990'
   return (
-    <div className="h-1.5 w-full rounded-full" style={{ background: '#0a1929' }} title={`Accession score: ${score} / 100`}>
+    <div className="h-1.5 w-full rounded-full" style={{ background: '#e7e5e0' }} title={`Accession score: ${score} / 100`}>
       <div
         className="h-full rounded-full transition-all duration-300"
         style={{ width: `${score}%`, background: color }}
@@ -69,19 +70,25 @@ function VoteBreakdown({
   const pendingCount = entries.filter(([, v]) => v === 'pending').length
 
   return (
-    <div className="mt-2 rounded p-2.5 space-y-1.5" style={{ background: '#0a1929' }}>
-      <div className="flex gap-3 flex-wrap text-xs font-medium">
-        <span style={{ color: '#4ade80' }}>✓ {yesCount} yes</span>
-        <span style={{ color: '#9ca3af' }}>– {abstCount} abstain</span>
-        <span style={{ color: noVoters.length ? '#f87171' : '#4b5563' }}>
-          ✕ {noVoters.length} no
+    <div className="mt-2 rounded p-2.5 space-y-1.5" style={{ background: '#f0ede7', border: '1px solid #e7e5e0' }}>
+      <div className="flex gap-3 flex-wrap text-xs font-medium tabular-nums">
+        <span className="flex items-center gap-1" style={{ color: '#15803d' }}>
+          <Check size={11} strokeWidth={2.5} /> {yesCount} yes
+        </span>
+        <span className="flex items-center gap-1" style={{ color: '#78716c' }}>
+          <Minus size={11} strokeWidth={2.5} /> {abstCount} abstain
+        </span>
+        <span className="flex items-center gap-1" style={{ color: noVoters.length ? '#b91c1c' : '#a8a29e' }}>
+          <X size={11} strokeWidth={2.5} /> {noVoters.length} no
         </span>
         {pendingCount > 0 && (
-          <span style={{ color: '#6b7280' }}>⟳ {pendingCount} pending</span>
+          <span className="flex items-center gap-1" style={{ color: '#78716c' }}>
+            <RotateCcw size={11} strokeWidth={2.25} /> {pendingCount} pending
+          </span>
         )}
       </div>
       {noVoters.length > 0 && (
-        <p className="text-xs" style={{ color: '#f87171' }}>
+        <p className="text-xs" style={{ color: '#b91c1c' }}>
           Blocking: {noVoters.map(([id]) => countries[id]?.name ?? id).join(', ')}
         </p>
       )}
@@ -131,12 +138,16 @@ function ProcessCard({
 
   return (
     <div
-      className="rounded-lg p-4 space-y-3"
-      style={{ background: '#0d1f2d', border: '1px solid #1e3a5f' }}
+      className="rounded-lg p-5 space-y-3"
+      style={{
+        background: '#f5f3ef',
+        border: '1px solid #e7e5e0',
+        boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
+      }}
     >
       {/* Header row */}
       <div className="flex items-center justify-between gap-2">
-        <span className="font-semibold text-sm" style={{ color: '#e8edf2' }}>
+        <span className="font-serif font-semibold" style={{ color: '#1c1917', fontSize: 16 }}>
           {country?.name ?? process.countryId}
         </span>
         <StageBadge stage={stage} />
@@ -144,25 +155,26 @@ function ProcessCard({
 
       {/* Score bar */}
       <div>
-        <div className="flex justify-between text-xs mb-1.5" style={{ color: '#6b7280' }}>
+        <div className="flex justify-between text-xs mb-1.5" style={{ color: '#78716c' }}>
           <span>Accession score</span>
-          <span style={{ color: score >= 80 ? '#4ade80' : '#e8edf2' }}>{score} / 100</span>
+          <span className="tabular-nums font-semibold" style={{ color: score >= 80 ? '#15803d' : '#1c1917' }}>{score} / 100</span>
         </div>
         <ScoreBar score={score} />
       </div>
 
       {/* Meta */}
-      <div className="flex gap-4 text-xs" style={{ color: '#6b7280' }}>
+      <div className="flex gap-4 text-xs tabular-nums" style={{ color: '#78716c' }}>
         <span>{turnsInStage} turn{turnsInStage !== 1 ? 's' : ''} in stage</span>
-        <span style={{ color: scoreGate ? '#f87171' : '#6b7280' }}>
+        <span style={{ color: scoreGate ? '#dc2626' : '#78716c' }}>
           {requirementText()}
         </span>
       </div>
 
       {/* Adversary warning */}
       {adversaryReactionTriggered && (
-        <p className="text-xs" style={{ color: '#f87171' }}>
-          ⚠ Adversary reaction triggered — expect increased regional tension
+        <p className="flex items-center gap-1.5 text-xs" style={{ color: '#b91c1c' }}>
+          <AlertTriangle size={12} strokeWidth={2} />
+          Adversary reaction triggered — expect increased regional tension
         </p>
       )}
 
@@ -178,8 +190,8 @@ function ProcessCard({
           disabled={!canFinalise}
           className="w-full rounded py-2 text-xs font-semibold"
           style={{
-            background: canFinalise ? '#16a34a' : '#1e3a5f',
-            color:      canFinalise ? '#fff' : '#4b5563',
+            background: canFinalise ? '#15803d' : '#f0ede7',
+            color:      canFinalise ? '#fff' : '#a8a29e',
             cursor:     canFinalise ? 'pointer' : 'not-allowed',
           }}
         >
@@ -201,20 +213,20 @@ function ProcessCard({
             }
             className="w-full rounded py-2 text-xs font-semibold"
             style={{
-              background: advDisabled ? '#1e3a5f' : '#2563eb',
-              color:      advDisabled ? '#4b5563' : '#fff',
+              background: advDisabled ? '#f0ede7' : '#004990',
+              color:      advDisabled ? '#a8a29e' : '#fff',
               cursor:     advDisabled ? 'not-allowed' : 'pointer',
             }}
           >
             {advLabel}
           </button>
           {!canAfford && (
-            <p className="text-xs text-center" style={{ color: '#f87171' }}>
+            <p className="text-xs text-center" style={{ color: '#b91c1c' }}>
               Insufficient political capital
             </p>
           )}
           {isBlocked && stage === 'invitation' && (
-            <p className="text-xs text-center" style={{ color: '#fbbf24' }}>
+            <p className="text-xs text-center" style={{ color: '#b45309' }}>
               Engage blocking members and retry
             </p>
           )}
@@ -241,28 +253,41 @@ function CountryRow({
   return (
     <div
       className="flex items-center gap-3 rounded-lg px-3 py-2.5"
-      style={{ background: '#0d1f2d', border: '1px solid #1a2f47' }}
+      style={{ background: '#f5f3ef', border: '1px solid #e7e5e0' }}
     >
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1">
-          <span className="text-sm font-medium truncate" style={{ color: '#e8edf2' }}>
+          <span className="text-sm font-medium truncate" style={{ color: '#1c1917' }}>
             {country.name}
           </span>
-          <span className="text-xs tabular-nums flex-shrink-0" style={{ color: score >= 80 ? '#4ade80' : '#9ca3af' }}>
+          <span className="text-xs tabular-nums flex-shrink-0 font-semibold" style={{ color: score >= 80 ? '#15803d' : '#78716c' }}>
             {score}
           </span>
         </div>
-        <p className="text-xs truncate" style={{ color: '#6b7280' }}>{country.notes}</p>
+        <p className="text-xs truncate" style={{ color: '#78716c' }}>{country.notes}</p>
       </div>
       <button
         onClick={onBeginDialogue}
         disabled={!canAfford}
         title={canAfford ? `Begin Dialogue — costs ${PC_COST_DIALOGUE} PC` : `Insufficient political capital — need ${PC_COST_DIALOGUE} PC`}
-        className="flex-shrink-0 rounded px-2.5 py-1.5 text-xs font-medium"
+        className="flex-shrink-0 rounded px-2.5 py-1.5 text-xs font-medium transition-colors"
         style={{
-          background: canAfford ? '#1e3a5f' : '#111f2e',
-          color:      canAfford ? '#93c5fd'  : '#374151',
+          background: canAfford ? '#fafaf9' : '#f0ede7',
+          color:      canAfford ? '#004990' : '#a8a29e',
+          border:     `1px solid ${canAfford ? '#e7e5e0' : '#e7e5e0'}`,
           cursor:     canAfford ? 'pointer'  : 'not-allowed',
+        }}
+        onMouseEnter={(e) => {
+          if (canAfford) {
+            ;(e.currentTarget as HTMLButtonElement).style.background = '#e0eaf5'
+            ;(e.currentTarget as HTMLButtonElement).style.borderColor = '#004990'
+          }
+        }}
+        onMouseLeave={(e) => {
+          if (canAfford) {
+            ;(e.currentTarget as HTMLButtonElement).style.background = '#fafaf9'
+            ;(e.currentTarget as HTMLButtonElement).style.borderColor = '#e7e5e0'
+          }
         }}
       >
         Begin Dialogue
@@ -310,7 +335,7 @@ export default function AccessionPanel({ isOpen, onClose }: Props) {
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center"
-      style={{ background: 'rgba(0,0,0,0.65)' }}
+      style={{ background: 'rgba(28,25,23,0.55)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }}
       onClick={onClose}
     >
       <div
@@ -318,57 +343,75 @@ export default function AccessionPanel({ isOpen, onClose }: Props) {
         style={{
           width: 580,
           maxHeight: '90vh',
-          background: '#152840',
-          border: '1px solid #1e3a5f',
-          boxShadow: '0 24px 60px rgba(0,0,0,0.5)',
+          background: '#fafaf9',
+          border: '1px solid #e7e5e0',
+          boxShadow: '0 12px 32px rgba(15, 23, 42, 0.12), 0 2px 6px rgba(15, 23, 42, 0.08)',
         }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div
-          className="flex items-center justify-between px-6 py-4 flex-shrink-0"
-          style={{ borderBottom: '1px solid #1e3a5f' }}
+          className="flex items-center justify-between px-6 py-5 flex-shrink-0"
+          style={{ borderBottom: '1px solid #e7e5e0', background: '#f5f3ef' }}
         >
           <div>
-            <h2 className="font-semibold" style={{ fontSize: 16, color: '#e8edf2' }}>
+            <p
+              className="text-xs font-black uppercase tracking-widest mb-1"
+              style={{ color: '#a8a29e', letterSpacing: '0.2em' }}
+            >
+              Diplomacy
+            </p>
+            <h2
+              className="font-serif font-semibold tracking-tight"
+              style={{ fontSize: 20, color: '#1c1917', letterSpacing: '-0.01em' }}
+            >
               Alliance Expansion
             </h2>
-            <p className="text-xs mt-0.5" style={{ color: '#6b7280' }}>
+            <p className="text-xs mt-1" style={{ color: '#78716c' }}>
               Manage accession processes and partnerships
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-xs font-semibold" style={{ color: pc < 30 ? '#f87171' : '#f59e0b' }}>
-              💡 {pc} / 100 PC
+            <span className="flex items-center gap-1 text-xs font-semibold tabular-nums" style={{ color: pc < 30 ? '#dc2626' : '#b45309' }}>
+              <Lightbulb size={12} strokeWidth={2} />
+              {pc} / 100 PC
             </span>
             <button
               onClick={onClose}
-              className="rounded-full flex items-center justify-center text-sm font-bold"
-              style={{ width: 28, height: 28, background: '#1e3a5f', color: '#9ca3af' }}
+              className="rounded-full flex items-center justify-center transition-colors"
+              style={{ width: 28, height: 28, background: 'transparent', color: '#78716c', border: '1px solid #e7e5e0' }}
+              onMouseEnter={(e) => {
+                ;(e.currentTarget as HTMLButtonElement).style.background = '#fafaf9'
+                ;(e.currentTarget as HTMLButtonElement).style.color = '#1c1917'
+              }}
+              onMouseLeave={(e) => {
+                ;(e.currentTarget as HTMLButtonElement).style.background = 'transparent'
+                ;(e.currentTarget as HTMLButtonElement).style.color = '#78716c'
+              }}
               aria-label="Close expansion panel"
             >
-              ✕
+              <X size={14} strokeWidth={2} />
             </button>
           </div>
         </div>
 
         {/* Scrollable body */}
-        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
+        <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
 
           {/* ── Section 1: Active processes ── */}
           <div>
-            <p className="text-xs font-medium uppercase tracking-wider mb-3" style={{ color: '#6b7280' }}>
+            <p className="text-xs font-medium uppercase tracking-wider mb-3" style={{ color: '#78716c' }}>
               Active Processes
               {activeProcesses.length > 0 && (
-                <span className="ml-2 normal-case font-normal" style={{ color: '#4b5563' }}>
+                <span className="ml-2 normal-case font-normal tabular-nums" style={{ color: '#a8a29e' }}>
                   ({activeProcesses.length})
                 </span>
               )}
             </p>
             {activeProcesses.length === 0 ? (
               <div className="space-y-1">
-                <p className="text-sm" style={{ color: '#6b7280' }}>No active accession processes.</p>
-                <p className="text-xs" style={{ color: '#374151' }}>
+                <p className="text-sm" style={{ color: '#78716c' }}>No active accession processes.</p>
+                <p className="text-xs" style={{ color: '#a8a29e' }}>
                   Open a candidate&apos;s country panel to begin dialogue.
                 </p>
               </div>
@@ -390,11 +433,11 @@ export default function AccessionPanel({ isOpen, onClose }: Props) {
 
           {/* ── Section 2: Formal candidates ── */}
           <div>
-            <p className="text-xs font-medium uppercase tracking-wider mb-3" style={{ color: '#6b7280' }}>
+            <p className="text-xs font-medium uppercase tracking-wider mb-3" style={{ color: '#78716c' }}>
               Accession Candidates
             </p>
             {candidates.length === 0 ? (
-              <p className="text-sm" style={{ color: '#4b5563' }}>
+              <p className="text-sm" style={{ color: '#a8a29e' }}>
                 All formal candidates have active processes.
               </p>
             ) : (
@@ -418,14 +461,14 @@ export default function AccessionPanel({ isOpen, onClose }: Props) {
               onClick={() => setPartnersOpen((o) => !o)}
               className="flex items-center justify-between w-full mb-1"
             >
-              <p className="text-xs font-medium uppercase tracking-wider" style={{ color: '#6b7280' }}>
+              <p className="text-xs font-medium uppercase tracking-wider" style={{ color: '#78716c' }}>
                 Potential Partners
-                <span className="ml-2 normal-case font-normal" style={{ color: '#4b5563' }}>
+                <span className="ml-2 normal-case font-normal tabular-nums" style={{ color: '#a8a29e' }}>
                   ({neutralPartners.length} neutral states)
                 </span>
               </p>
-              <span className="text-xs" style={{ color: '#4b5563' }}>
-                {partnersOpen ? '▲' : '▼'}
+              <span className="flex items-center text-xs" style={{ color: '#78716c' }}>
+                {partnersOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
               </span>
             </button>
 
@@ -433,9 +476,9 @@ export default function AccessionPanel({ isOpen, onClose }: Props) {
               <div className="space-y-2 mt-3">
                 <div
                   className="rounded p-3 mb-3"
-                  style={{ background: '#0d1f2d', border: '1px solid #1e3a5f' }}
+                  style={{ background: '#f0ede7', border: '1px solid #e7e5e0' }}
                 >
-                  <p className="text-xs" style={{ color: '#6b7280' }}>
+                  <p className="text-xs" style={{ color: '#78716c' }}>
                     Initiating dialogue with neutral states costs additional political capital
                     and may draw adversary attention. Sorted by accession readiness.
                   </p>

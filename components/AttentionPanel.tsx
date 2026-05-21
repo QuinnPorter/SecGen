@@ -3,6 +3,7 @@
 import { useMemo } from 'react'
 import { useGameStore, type Country } from '@/lib/gameState'
 import { PC_COST_ENGAGE } from '@/lib/constants'
+import { X, AlertTriangle, Check, Circle } from 'lucide-react'
 
 // ── Flag emoji (mirrors IntelBrief) ──────────────────────────────────────────
 
@@ -60,7 +61,7 @@ function MiniBar({
   return (
     <div
       className="rounded-full"
-      style={{ background: '#0d1f2d', height: 4, width: '100%', overflow: 'hidden' }}
+      style={{ background: '#e7e5e0', height: 4, width: '100%', overflow: 'hidden' }}
       title={title}
     >
       <div
@@ -89,62 +90,66 @@ function MemberCard({
   onView: () => void
 }) {
   const issues   = issueCount(country)
-  const dotColor = issues >= 2 ? '#ef4444' : '#f59e0b'
+  const dotColor = issues >= 2 ? '#dc2626' : '#b45309'
   const canEngage = pc >= PC_COST_ENGAGE && !isEngaged
 
   return (
     <div
-      className="rounded-lg p-4"
-      style={{ background: '#0a1929', border: '1px solid #1e3a5f' }}
+      className="rounded-lg p-5"
+      style={{
+        background: '#fafaf9',
+        border: '1px solid #e7e5e0',
+        boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
+      }}
     >
       {/* Header row */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2.5 min-w-0">
           <span style={{ fontSize: 18, lineHeight: 1 }}>{flagEmoji(country.id)}</span>
-          <span className="font-semibold text-sm truncate" style={{ color: '#e8edf2' }}>
+          <span className="font-serif font-semibold truncate" style={{ color: '#1c1917', fontSize: 16 }}>
             {country.name}
           </span>
           {hasActiveCrisis && (
             <span
               className="text-xs font-semibold px-1.5 py-0.5 rounded flex-shrink-0"
-              style={{ background: '#7f1d1d', color: '#fca5a5', border: '1px solid #991b1b', fontSize: 10 }}
+              style={{ background: '#fef2f2', color: '#b91c1c', border: '1px solid #dc2626', fontSize: 10 }}
             >
               CRISIS
             </span>
           )}
         </div>
-        <span
-          title={`${issues} issue${issues !== 1 ? 's' : ''}`}
-          style={{ fontSize: 8, color: dotColor, flexShrink: 0 }}
-        >
-          ●
-        </span>
+        <Circle
+          size={9}
+          fill={dotColor}
+          strokeWidth={0}
+          aria-label={`${issues} issue${issues !== 1 ? 's' : ''}`}
+        />
       </div>
 
       {/* Issue tags */}
       <div className="flex flex-wrap gap-1.5 mb-3">
         {country.gdpDefencePercent < 2.0 && (
           <span
-            className="text-xs px-1.5 py-0.5 rounded"
-            style={{ background: '#450a0a', color: '#fca5a5', border: '1px solid #7f1d1d' }}
+            className="flex items-center gap-1 text-xs px-1.5 py-0.5 rounded tabular-nums"
+            style={{ background: '#fef2f2', color: '#b91c1c', border: '1px solid #fca5a5' }}
           >
-            ⚠ Below 2% GDP
+            <AlertTriangle size={10} strokeWidth={2.25} /> Below 2% GDP
           </span>
         )}
         {country.allianceSatisfaction < 50 && (
           <span
-            className="text-xs px-1.5 py-0.5 rounded"
-            style={{ background: '#451a03', color: '#fcd34d', border: '1px solid #92400e' }}
+            className="flex items-center gap-1 text-xs px-1.5 py-0.5 rounded tabular-nums"
+            style={{ background: '#fef3c7', color: '#92400e', border: '1px solid #fcd34d' }}
           >
-            ⚠ Low satisfaction ({Math.round(country.allianceSatisfaction)})
+            <AlertTriangle size={10} strokeWidth={2.25} /> Low satisfaction ({Math.round(country.allianceSatisfaction)})
           </span>
         )}
         {country.fiscalPressure > 65 && (
           <span
-            className="text-xs px-1.5 py-0.5 rounded"
-            style={{ background: '#451a03', color: '#fcd34d', border: '1px solid #92400e' }}
+            className="flex items-center gap-1 text-xs px-1.5 py-0.5 rounded tabular-nums"
+            style={{ background: '#fef3c7', color: '#92400e', border: '1px solid #fcd34d' }}
           >
-            ⚠ High fiscal pressure ({Math.round(country.fiscalPressure)})
+            <AlertTriangle size={10} strokeWidth={2.25} /> High fiscal pressure ({Math.round(country.fiscalPressure)})
           </span>
         )}
       </div>
@@ -154,17 +159,17 @@ function MemberCard({
         {/* Alliance satisfaction */}
         <div>
           <div className="flex items-center justify-between mb-1">
-            <span className="text-xs" style={{ color: '#4b5563' }}>Satisfaction</span>
-            <span className="text-xs font-semibold tabular-nums" style={{ color: '#6b7280' }}>
+            <span className="text-xs" style={{ color: '#78716c' }}>Satisfaction</span>
+            <span className="text-xs font-semibold tabular-nums" style={{ color: '#1c1917' }}>
               {Math.round(country.allianceSatisfaction)}
             </span>
           </div>
           <MiniBar
             value={country.allianceSatisfaction}
             color={
-              country.allianceSatisfaction >= 70 ? '#4ade80'
-              : country.allianceSatisfaction >= 40 ? '#f59e0b'
-              : '#f87171'
+              country.allianceSatisfaction >= 70 ? '#15803d'
+              : country.allianceSatisfaction >= 40 ? '#b45309'
+              : '#dc2626'
             }
             title={`Alliance satisfaction: ${Math.round(country.allianceSatisfaction)} / 100`}
           />
@@ -172,30 +177,30 @@ function MemberCard({
 
         {/* GDP defence % */}
         <div className="flex items-center justify-between">
-          <span className="text-xs" style={{ color: '#4b5563' }}>GDP defence</span>
+          <span className="text-xs" style={{ color: '#78716c' }}>GDP defence</span>
           <span
             className="text-xs font-semibold tabular-nums"
-            style={{ color: country.gdpDefencePercent >= 2.0 ? '#4ade80' : '#f87171' }}
+            style={{ color: country.gdpDefencePercent >= 2.0 ? '#15803d' : '#dc2626' }}
           >
             {country.gdpDefencePercent.toFixed(1)}%{' '}
-            <span style={{ color: '#374151', fontWeight: 400 }}>/ 2.0%</span>
+            <span style={{ color: '#a8a29e', fontWeight: 400 }}>/ 2.0%</span>
           </span>
         </div>
 
         {/* Fiscal pressure */}
         <div>
           <div className="flex items-center justify-between mb-1">
-            <span className="text-xs" style={{ color: '#4b5563' }}>Fiscal pressure</span>
-            <span className="text-xs font-semibold tabular-nums" style={{ color: '#6b7280' }}>
+            <span className="text-xs" style={{ color: '#78716c' }}>Fiscal pressure</span>
+            <span className="text-xs font-semibold tabular-nums" style={{ color: '#1c1917' }}>
               {Math.round(country.fiscalPressure)}
             </span>
           </div>
           <MiniBar
             value={country.fiscalPressure}
             color={
-              country.fiscalPressure > 65 ? '#f87171'
-              : country.fiscalPressure > 40 ? '#f59e0b'
-              : '#4b5563'
+              country.fiscalPressure > 65 ? '#dc2626'
+              : country.fiscalPressure > 40 ? '#b45309'
+              : '#78716c'
             }
             title={`Fiscal pressure: ${Math.round(country.fiscalPressure)} / 100`}
           />
@@ -212,33 +217,39 @@ function MemberCard({
             pc < PC_COST_ENGAGE ? 'Insufficient political capital' :
             `Engage — costs ${PC_COST_ENGAGE} PC, lasts 3 turns`
           }
-          className="flex-1 rounded py-1.5 text-xs font-semibold transition-colors"
+          className="flex-1 rounded py-1.5 text-xs font-semibold transition-colors flex items-center justify-center gap-1 tabular-nums"
           style={{
-            background: canEngage ? '#1e3a5f' : '#0a1929',
-            color:      canEngage ? '#93c5fd' : '#374151',
-            border:     `1px solid ${canEngage ? '#2563eb' : '#1a2f47'}`,
+            background: canEngage ? '#004990' : '#f0ede7',
+            color:      canEngage ? '#fff' : '#a8a29e',
+            border:     'none',
             cursor:     canEngage ? 'pointer' : 'not-allowed',
           }}
           onMouseEnter={(e) => {
-            if (canEngage) (e.currentTarget as HTMLButtonElement).style.background = '#1e3a8a'
+            if (canEngage) (e.currentTarget as HTMLButtonElement).style.background = '#003a78'
           }}
           onMouseLeave={(e) => {
-            if (canEngage) (e.currentTarget as HTMLButtonElement).style.background = '#1e3a5f'
+            if (canEngage) (e.currentTarget as HTMLButtonElement).style.background = '#004990'
           }}
         >
-          {isEngaged ? 'Engaged ✓' : `Engage — ${PC_COST_ENGAGE} PC`}
+          {isEngaged ? (
+            <>
+              Engaged <Check size={12} strokeWidth={2.5} />
+            </>
+          ) : (
+            `Engage — ${PC_COST_ENGAGE} PC`
+          )}
         </button>
         <button
           onClick={onView}
           className="flex-1 rounded py-1.5 text-xs font-medium transition-colors"
-          style={{ background: '#0d1f2d', color: '#6b7280', border: '1px solid #1e3a5f', cursor: 'pointer' }}
+          style={{ background: '#fafaf9', color: '#57534e', border: '1px solid #e7e5e0', cursor: 'pointer' }}
           onMouseEnter={(e) => {
-            ;(e.currentTarget as HTMLButtonElement).style.color = '#9ca3af'
-            ;(e.currentTarget as HTMLButtonElement).style.borderColor = '#2563eb'
+            ;(e.currentTarget as HTMLButtonElement).style.color = '#004990'
+            ;(e.currentTarget as HTMLButtonElement).style.borderColor = '#004990'
           }}
           onMouseLeave={(e) => {
-            ;(e.currentTarget as HTMLButtonElement).style.color = '#6b7280'
-            ;(e.currentTarget as HTMLButtonElement).style.borderColor = '#1e3a5f'
+            ;(e.currentTarget as HTMLButtonElement).style.color = '#57534e'
+            ;(e.currentTarget as HTMLButtonElement).style.borderColor = '#e7e5e0'
           }}
         >
           View Country
@@ -315,60 +326,72 @@ export default function AttentionPanel({ isOpen, onClose, onOpenBudget }: Props)
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center"
-      style={{ background: 'rgba(0,0,0,0.8)' }}
+      style={{ background: 'rgba(28,25,23,0.55)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }}
     >
       <div
         className="flex flex-col rounded-xl"
         style={{
           width:     640,
           maxHeight: '84vh',
-          background: '#0d1f2d',
-          border:    '1px solid #1e3a5f',
-          boxShadow: '0 32px 80px rgba(0,0,0,0.75)',
+          background: '#fafaf9',
+          border:    '1px solid #e7e5e0',
+          boxShadow: '0 12px 32px rgba(15, 23, 42, 0.12), 0 2px 6px rgba(15, 23, 42, 0.08)',
           overflow:  'hidden',
         }}
       >
         {/* ── Header ── */}
         <div
           className="flex-shrink-0 px-6 py-5"
-          style={{ borderBottom: '1px solid #1e3a5f', background: '#060f1a' }}
+          style={{ borderBottom: '1px solid #e7e5e0', background: '#f5f3ef' }}
         >
           <div className="flex items-start justify-between gap-4">
             <div>
+              <p
+                className="text-xs font-black uppercase tracking-widest mb-1"
+                style={{ color: '#a8a29e', letterSpacing: '0.2em' }}
+              >
+                Watchlist
+              </p>
               <h2
-                className="font-bold leading-tight"
-                style={{ fontSize: 17, color: '#e8edf2' }}
+                className="font-serif font-semibold tracking-tight tabular-nums"
+                style={{ fontSize: 20, color: '#1c1917', letterSpacing: '-0.01em' }}
               >
                 {attentionList.length} Member{attentionList.length !== 1 ? 's' : ''} Requiring Attention
               </h2>
-              <p className="text-xs mt-1" style={{ color: '#4b5563' }}>
+              <p className="text-xs mt-1" style={{ color: '#78716c' }}>
                 Sorted by urgency
               </p>
             </div>
             <button
               onClick={onClose}
-              className="flex-shrink-0 rounded p-1.5 transition-colors"
-              style={{ background: 'transparent', color: '#4b5563', border: 'none', cursor: 'pointer' }}
-              onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.color = '#9ca3af')}
-              onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.color = '#4b5563')}
+              className="flex-shrink-0 rounded-full flex items-center justify-center transition-colors"
+              style={{ width: 28, height: 28, background: 'transparent', color: '#78716c', border: '1px solid #e7e5e0', cursor: 'pointer' }}
+              onMouseEnter={(e) => {
+                ;(e.currentTarget as HTMLButtonElement).style.background = '#fafaf9'
+                ;(e.currentTarget as HTMLButtonElement).style.color = '#1c1917'
+              }}
+              onMouseLeave={(e) => {
+                ;(e.currentTarget as HTMLButtonElement).style.background = 'transparent'
+                ;(e.currentTarget as HTMLButtonElement).style.color = '#78716c'
+              }}
               aria-label="Close"
             >
-              ✕
+              <X size={14} strokeWidth={2} />
             </button>
           </div>
         </div>
 
         {/* ── Scrollable member list ── */}
         <div
-          className="flex-1 overflow-y-auto px-5 py-4 space-y-3"
-          style={{ background: '#0a1522' }}
+          className="flex-1 overflow-y-auto px-6 py-5 space-y-3"
+          style={{ background: '#f0ede7' }}
         >
           {attentionList.length === 0 ? (
             <div className="text-center py-12 space-y-1">
-              <p className="text-sm" style={{ color: '#6b7280' }}>
+              <p className="text-sm" style={{ color: '#78716c' }}>
                 All members are meeting commitments.
               </p>
-              <p className="text-xs" style={{ color: '#374151' }}>
+              <p className="text-xs" style={{ color: '#a8a29e' }}>
                 The alliance is in good standing.
               </p>
             </div>
@@ -402,27 +425,27 @@ export default function AttentionPanel({ isOpen, onClose, onOpenBudget }: Props)
         {/* ── Footer ── */}
         <div
           className="flex-shrink-0 px-6 py-4"
-          style={{ borderTop: '1px solid #1e3a5f', background: '#060f1a' }}
+          style={{ borderTop: '1px solid #e7e5e0', background: '#f5f3ef' }}
         >
           <div className="flex items-center justify-between gap-4">
             <div className="space-y-0.5">
-              <p className="text-xs" style={{ color: '#4b5563' }}>
+              <p className="text-xs tabular-nums" style={{ color: '#78716c' }}>
                 Average alliance satisfaction:{' '}
                 <span
                   style={{
                     color:
-                      avgSatisfaction >= 60 ? '#4ade80'
-                      : avgSatisfaction >= 40 ? '#f59e0b'
-                      : '#f87171',
+                      avgSatisfaction >= 60 ? '#15803d'
+                      : avgSatisfaction >= 40 ? '#b45309'
+                      : '#dc2626',
                     fontWeight: 600,
                   }}
                 >
                   {avgSatisfaction}
                 </span>
               </p>
-              <p className="text-xs" style={{ color: '#4b5563' }}>
+              <p className="text-xs tabular-nums" style={{ color: '#78716c' }}>
                 Members at 2% GDP target:{' '}
-                <span style={{ color: '#93c5fd', fontWeight: 600 }}>
+                <span style={{ color: '#004990', fontWeight: 600 }}>
                   {at2Pct} / {natoMembers.length}
                 </span>
               </p>
@@ -430,9 +453,15 @@ export default function AttentionPanel({ isOpen, onClose, onOpenBudget }: Props)
             <button
               onClick={() => { onClose(); onOpenBudget() }}
               className="text-xs font-medium px-4 py-2 rounded transition-colors flex-shrink-0"
-              style={{ background: '#0d1f2d', color: '#93c5fd', border: '1px solid #1e3a5f', cursor: 'pointer' }}
-              onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.background = '#152840')}
-              onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.background = '#0d1f2d')}
+              style={{ background: '#fafaf9', color: '#004990', border: '1px solid #e7e5e0', cursor: 'pointer' }}
+              onMouseEnter={(e) => {
+                ;(e.currentTarget as HTMLButtonElement).style.background = '#e0eaf5'
+                ;(e.currentTarget as HTMLButtonElement).style.borderColor = '#004990'
+              }}
+              onMouseLeave={(e) => {
+                ;(e.currentTarget as HTMLButtonElement).style.background = '#fafaf9'
+                ;(e.currentTarget as HTMLButtonElement).style.borderColor = '#e7e5e0'
+              }}
             >
               Open Budget Panel
             </button>

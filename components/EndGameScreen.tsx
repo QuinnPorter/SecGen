@@ -33,7 +33,7 @@ const GRADE_FLAVOUR: Record<string, string> = {
 }
 
 const GRADE_COLOR: Record<string, string> = {
-  'A+': '#4ade80', 'A': '#4ade80', 'B': '#93c5fd', 'C': '#f59e0b', 'D': '#f87171', 'F': '#ef4444',
+  'A+': '#15803d', 'A': '#15803d', 'B': '#004990', 'C': '#b45309', 'D': '#dc2626', 'F': '#b91c1c',
 }
 
 // ── Stat card ─────────────────────────────────────────────────────────────────
@@ -42,18 +42,22 @@ function StatCard({ title, rows }: { title: string; rows: { label: string; value
   return (
     <div
       className="rounded-lg p-5"
-      style={{ background: '#0d1f2d', border: '1px solid #1e3a5f' }}
+      style={{
+        background: '#fafaf9',
+        border: '1px solid #e7e5e0',
+        boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
+      }}
     >
-      <p className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: '#4b5563' }}>
+      <p className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: '#a8a29e', letterSpacing: '0.18em' }}>
         {title}
       </p>
       <div className="space-y-2.5">
         {rows.map(({ label, value, highlight }) => (
           <div key={label} className="flex items-baseline justify-between gap-3">
-            <span className="text-xs" style={{ color: '#6b7280' }}>{label}</span>
+            <span className="text-xs" style={{ color: '#78716c' }}>{label}</span>
             <span
               className="text-sm font-semibold tabular-nums"
-              style={{ color: highlight ? '#93c5fd' : '#e8edf2' }}
+              style={{ color: highlight ? '#004990' : '#1c1917' }}
             >
               {value}
             </span>
@@ -68,12 +72,12 @@ function StatCard({ title, rows }: { title: string; rows: { label: string; value
 
 function outcomeBadge(outcome: VictoryResult): { label: string; bg: string; border: string; color: string } {
   if (outcome.status === 'lost') {
-    return { label: 'Term Ended Early', bg: '#7f1d1d', border: '#991b1b', color: '#fca5a5' }
+    return { label: 'Term Ended Early', bg: '#fef2f2', border: '#dc2626', color: '#b91c1c' }
   }
   if (outcome.reason === 'A Generation-Defining Secretaryship') {
-    return { label: 'Historic Achievement', bg: '#1c1008', border: '#d97706', color: '#fbbf24' }
+    return { label: 'Historic Achievement', bg: '#fef3c7', border: '#b45309', color: '#92400e' }
   }
-  return { label: 'Mission Accomplished', bg: '#1e3a8a', border: '#2563eb', color: '#93c5fd' }
+  return { label: 'Mission Accomplished', bg: '#e0eaf5', border: '#004990', color: '#004990' }
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
@@ -146,7 +150,7 @@ export default function EndGameScreen({ onReviewMap, onNewTerm }: Props) {
   return (
     <div
       className="fixed inset-0 z-50 overflow-y-auto"
-      style={{ background: '#060f1a' }}
+      style={{ background: '#f5f3ef' }}
     >
       <div
         className="mx-auto py-12 px-6"
@@ -157,17 +161,17 @@ export default function EndGameScreen({ onReviewMap, onNewTerm }: Props) {
         <div className="mb-10">
           <p
             className="text-xs font-semibold uppercase tracking-widest mb-3"
-            style={{ color: '#374151', letterSpacing: '0.25em' }}
+            style={{ color: '#a8a29e', letterSpacing: '0.25em' }}
           >
             NATO Secretary General
           </p>
           <h1
-            className="font-black mb-1"
-            style={{ fontSize: 36, color: '#e8edf2', letterSpacing: '-0.02em' }}
+            className="font-serif font-bold mb-2 tracking-tight"
+            style={{ fontSize: 40, color: '#1c1917', letterSpacing: '-0.02em', lineHeight: 1.05 }}
           >
             End of Term Report
           </h1>
-          <p className="text-sm mb-6" style={{ color: '#4b5563' }}>
+          <p className="text-sm mb-6 tabular-nums" style={{ color: '#78716c' }}>
             January 2024 — Q{quarter} {endYear} &nbsp;·&nbsp; Turn {turn}
           </p>
 
@@ -176,15 +180,15 @@ export default function EndGameScreen({ onReviewMap, onNewTerm }: Props) {
             className="inline-flex items-center gap-2 rounded px-3 py-1.5 mb-5"
             style={{ background: badge.bg, border: `1px solid ${badge.border}` }}
           >
-            <span className="text-xs font-black uppercase tracking-widest" style={{ color: badge.color }}>
+            <span className="text-xs font-black uppercase tracking-widest" style={{ color: badge.color, letterSpacing: '0.15em' }}>
               {badge.label}
             </span>
           </div>
 
           {/* Reason */}
           <h2
-            className="font-bold leading-tight mb-3"
-            style={{ fontSize: 24, color: '#e8edf2' }}
+            className="font-serif font-semibold leading-tight mb-3 tracking-tight"
+            style={{ fontSize: 26, color: '#1c1917', letterSpacing: '-0.01em' }}
           >
             {gameOutcome.reason}
           </h2>
@@ -192,20 +196,20 @@ export default function EndGameScreen({ onReviewMap, onNewTerm }: Props) {
           {/* Detail */}
           <p
             className="leading-relaxed"
-            style={{ fontSize: 16, color: '#9ca3af', maxWidth: 640 }}
+            style={{ fontSize: 16, color: '#57534e', maxWidth: 640 }}
           >
             {gameOutcome.detail}
           </p>
         </div>
 
         {/* ── Divider ── */}
-        <div className="mb-8" style={{ height: 1, background: '#1e3a5f' }} />
+        <div className="mb-8" style={{ height: 1, background: '#e7e5e0' }} />
 
         {/* ── Statistics — Your Legacy ── */}
         <div className="mb-8">
           <p
             className="text-xs font-semibold uppercase tracking-widest mb-5"
-            style={{ color: '#4b5563', letterSpacing: '0.2em' }}
+            style={{ color: '#a8a29e', letterSpacing: '0.2em' }}
           >
             Your Legacy
           </p>
@@ -254,37 +258,42 @@ export default function EndGameScreen({ onReviewMap, onNewTerm }: Props) {
         </div>
 
         {/* ── Divider ── */}
-        <div className="mb-8" style={{ height: 1, background: '#1e3a5f' }} />
+        <div className="mb-8" style={{ height: 1, background: '#e7e5e0' }} />
 
         {/* ── Grade ── */}
         <div className="mb-10">
           <p
             className="text-xs font-semibold uppercase tracking-widest mb-5"
-            style={{ color: '#4b5563', letterSpacing: '0.2em' }}
+            style={{ color: '#a8a29e', letterSpacing: '0.2em' }}
           >
             Historical Assessment
           </p>
 
           <div
             className="rounded-lg p-6 flex items-start gap-6"
-            style={{ background: '#0d1f2d', border: '1px solid #1e3a5f' }}
+            style={{
+              background: '#fafaf9',
+              border: '1px solid #e7e5e0',
+              borderLeft: `6px solid ${GRADE_COLOR[grade] ?? '#a8a29e'}`,
+              boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
+            }}
           >
             {/* Grade letter */}
             <div className="flex-shrink-0 text-center">
               <div
-                className="font-black leading-none"
-                style={{ fontSize: 72, color: GRADE_COLOR[grade] ?? '#9ca3af' }}
+                className="font-serif font-bold leading-none tabular-nums"
+                style={{ fontSize: 84, color: GRADE_COLOR[grade] ?? '#78716c', letterSpacing: '-0.04em' }}
               >
                 {grade}
               </div>
-              <div className="text-xs mt-1" style={{ color: '#4b5563' }}>
+              <div className="text-xs mt-2 tabular-nums" style={{ color: '#a8a29e' }}>
                 {Math.round(gradeScore)} / 100
               </div>
             </div>
 
             {/* Flavour text */}
             <div className="flex-1 pt-2">
-              <p className="text-sm leading-relaxed" style={{ color: '#9ca3af' }}>
+              <p className="text-sm leading-relaxed" style={{ color: '#57534e' }}>
                 {GRADE_FLAVOUR[grade]}
               </p>
               <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-1.5">
@@ -295,10 +304,10 @@ export default function EndGameScreen({ onReviewMap, onNewTerm }: Props) {
                   { label: 'Member retention',    weight: '25%', score: Math.round(retentionRate) },
                 ].map(({ label, weight, score }) => (
                   <div key={label} className="flex items-center justify-between gap-2">
-                    <span className="text-xs" style={{ color: '#374151' }}>
-                      {label} <span style={{ color: '#1e3a5f' }}>({weight})</span>
+                    <span className="text-xs" style={{ color: '#78716c' }}>
+                      {label} <span style={{ color: '#a8a29e' }}>({weight})</span>
                     </span>
-                    <span className="text-xs font-semibold tabular-nums" style={{ color: '#6b7280' }}>
+                    <span className="text-xs font-semibold tabular-nums" style={{ color: '#1c1917' }}>
                       {score}
                     </span>
                   </div>
@@ -313,14 +322,16 @@ export default function EndGameScreen({ onReviewMap, onNewTerm }: Props) {
           <button
             onClick={onReviewMap}
             className="rounded-lg px-6 py-3 text-sm font-medium transition-colors"
-            style={{ background: '#0d1f2d', color: '#9ca3af', border: '1px solid #1e3a5f' }}
+            style={{ background: '#fafaf9', color: '#57534e', border: '1px solid #e7e5e0' }}
             onMouseEnter={(e) => {
-              ;(e.currentTarget as HTMLButtonElement).style.background = '#152840'
-              ;(e.currentTarget as HTMLButtonElement).style.color = '#e8edf2'
+              ;(e.currentTarget as HTMLButtonElement).style.background = '#f5f3ef'
+              ;(e.currentTarget as HTMLButtonElement).style.color = '#1c1917'
+              ;(e.currentTarget as HTMLButtonElement).style.borderColor = '#a8a29e'
             }}
             onMouseLeave={(e) => {
-              ;(e.currentTarget as HTMLButtonElement).style.background = '#0d1f2d'
-              ;(e.currentTarget as HTMLButtonElement).style.color = '#9ca3af'
+              ;(e.currentTarget as HTMLButtonElement).style.background = '#fafaf9'
+              ;(e.currentTarget as HTMLButtonElement).style.color = '#57534e'
+              ;(e.currentTarget as HTMLButtonElement).style.borderColor = '#e7e5e0'
             }}
           >
             Review Map
@@ -329,9 +340,13 @@ export default function EndGameScreen({ onReviewMap, onNewTerm }: Props) {
           <button
             onClick={onNewTerm}
             className="rounded-lg px-8 py-3 text-sm font-semibold transition-colors"
-            style={{ background: '#2563eb', color: '#fff' }}
-            onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.background = '#1d4ed8')}
-            onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.background = '#2563eb')}
+            style={{
+              background: '#004990',
+              color: '#fff',
+              boxShadow: '0 1px 2px rgba(0, 73, 144, 0.18), 0 2px 4px rgba(0, 73, 144, 0.12)',
+            }}
+            onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.background = '#003a78')}
+            onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.background = '#004990')}
           >
             New Term
           </button>

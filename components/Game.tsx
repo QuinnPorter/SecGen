@@ -28,58 +28,61 @@ function LoadModal({
   return (
     <div
       className="fixed inset-0 z-[200] flex items-center justify-center"
-      style={{ background: 'rgba(0,0,0,0.85)' }}
+      style={{ background: 'rgba(28,25,23,0.55)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }}
     >
       <div
         className="rounded-xl p-8"
         style={{
           width: 400,
-          background: '#0d1f2d',
-          border: '1px solid #1e3a5f',
-          boxShadow: '0 32px 80px rgba(0,0,0,0.75)',
+          background: '#fafaf9',
+          border: '1px solid #e7e5e0',
+          boxShadow: '0 12px 32px rgba(15, 23, 42, 0.12), 0 2px 6px rgba(15, 23, 42, 0.08)',
         }}
       >
         {/* Header */}
         <p
-          className="text-xs font-black uppercase tracking-widest mb-4"
-          style={{ color: '#374151', letterSpacing: '0.2em' }}
+          className="text-xs font-black uppercase tracking-widest mb-3"
+          style={{ color: '#a8a29e', letterSpacing: '0.2em' }}
         >
           NATO Secretary General
         </p>
-        <h2 className="font-bold mb-1" style={{ fontSize: 20, color: '#e8edf2' }}>
+        <h2
+          className="font-serif font-semibold mb-2 tracking-tight"
+          style={{ fontSize: 22, color: '#1c1917', letterSpacing: '-0.01em' }}
+        >
           Continue saved game?
         </h2>
-        <p className="text-sm mb-6" style={{ color: '#4b5563' }}>
+        <p className="text-sm mb-6" style={{ color: '#57534e' }}>
           A saved term was found on this device.
         </p>
 
         {/* Save summary */}
         <div
           className="rounded-lg p-4 mb-6 space-y-2"
-          style={{ background: '#060f1a', border: '1px solid #1e3a5f' }}
+          style={{ background: '#f5f3ef', border: '1px solid #e7e5e0' }}
         >
           <div className="flex justify-between">
-            <span className="text-xs" style={{ color: '#6b7280' }}>Turn</span>
-            <span className="text-xs font-semibold" style={{ color: '#e8edf2' }}>{meta.turn}</span>
+            <span className="text-xs" style={{ color: '#78716c' }}>Turn</span>
+            <span className="text-xs font-semibold tabular-nums" style={{ color: '#1c1917' }}>{meta.turn}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-xs" style={{ color: '#6b7280' }}>Date</span>
-            <span className="text-xs font-semibold" style={{ color: '#e8edf2' }}>
+            <span className="text-xs" style={{ color: '#78716c' }}>Date</span>
+            <span className="text-xs font-semibold tabular-nums" style={{ color: '#1c1917' }}>
               {QUARTER_LABELS[meta.quarter]} {meta.year}
             </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-xs" style={{ color: '#6b7280' }}>Approval rating</span>
+            <span className="text-xs" style={{ color: '#78716c' }}>Approval rating</span>
             <span
-              className="text-xs font-semibold"
-              style={{ color: meta.approvalRating >= 50 ? '#4ade80' : '#f87171' }}
+              className="text-xs font-semibold tabular-nums"
+              style={{ color: meta.approvalRating >= 50 ? '#15803d' : '#dc2626' }}
             >
               {meta.approvalRating}
             </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-xs" style={{ color: '#6b7280' }}>Member states</span>
-            <span className="text-xs font-semibold" style={{ color: '#93c5fd' }}>{meta.memberCount}</span>
+            <span className="text-xs" style={{ color: '#78716c' }}>Member states</span>
+            <span className="text-xs font-semibold tabular-nums" style={{ color: '#004990' }}>{meta.memberCount}</span>
           </div>
         </div>
 
@@ -88,14 +91,16 @@ function LoadModal({
           <button
             onClick={onNewGame}
             className="flex-1 rounded-lg py-2.5 text-sm font-medium transition-colors"
-            style={{ background: '#0d1f2d', color: '#9ca3af', border: '1px solid #1e3a5f' }}
+            style={{ background: '#fafaf9', color: '#57534e', border: '1px solid #e7e5e0' }}
             onMouseEnter={(e) => {
-              ;(e.currentTarget as HTMLButtonElement).style.background = '#152840'
-              ;(e.currentTarget as HTMLButtonElement).style.color = '#e8edf2'
+              ;(e.currentTarget as HTMLButtonElement).style.background = '#f5f3ef'
+              ;(e.currentTarget as HTMLButtonElement).style.color = '#1c1917'
+              ;(e.currentTarget as HTMLButtonElement).style.borderColor = '#a8a29e'
             }}
             onMouseLeave={(e) => {
-              ;(e.currentTarget as HTMLButtonElement).style.background = '#0d1f2d'
-              ;(e.currentTarget as HTMLButtonElement).style.color = '#9ca3af'
+              ;(e.currentTarget as HTMLButtonElement).style.background = '#fafaf9'
+              ;(e.currentTarget as HTMLButtonElement).style.color = '#57534e'
+              ;(e.currentTarget as HTMLButtonElement).style.borderColor = '#e7e5e0'
             }}
           >
             New Game
@@ -103,9 +108,13 @@ function LoadModal({
           <button
             onClick={onContinue}
             className="flex-1 rounded-lg py-2.5 text-sm font-semibold transition-colors"
-            style={{ background: '#2563eb', color: '#fff' }}
-            onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.background = '#1d4ed8')}
-            onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.background = '#2563eb')}
+            style={{
+              background: '#004990',
+              color: '#fff',
+              boxShadow: '0 1px 2px rgba(0, 73, 144, 0.18), 0 2px 4px rgba(0, 73, 144, 0.12)',
+            }}
+            onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.background = '#003a78')}
+            onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.background = '#004990')}
           >
             Continue
           </button>
