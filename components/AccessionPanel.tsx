@@ -9,8 +9,9 @@ import {
   type GameState,
 } from '@/lib/gameState'
 import { computeAccessionScore } from '@/lib/accessionHelpers'
+import { computeMemberTendency } from '@/lib/voteSimulator'
 import { PC_COST_DIALOGUE, PC_COST_ADVANCE_ACCESSION } from '@/lib/constants'
-import { X, AlertTriangle, Lightbulb, ChevronUp, ChevronDown, Check, Minus, RotateCcw } from 'lucide-react'
+import { X, AlertTriangle, Lightbulb, ChevronUp, ChevronDown, Check, Minus, RotateCcw, Clock } from 'lucide-react'
 
 // ─── Stage display config ────────────────────────────────────────────────────
 
@@ -27,6 +28,18 @@ const ADVANCE_LABEL: Partial<Record<AccessionStage, string>> = {
   map:        'Extend Invitation',
   invitation: 'Call Member Vote',
 }
+
+// Static guidance per stage so the player knows what to expect mechanically.
+const STAGE_TIMING: Record<AccessionStage, string> = {
+  none:       '',
+  dialogue:   'Auto-advances to MAP once accession score ≥ 80 and 3 turns elapsed.',
+  map:        'Player-driven. Extending the invitation requires score ≥ 80 (and 25 PC).',
+  invitation: 'Player-driven. Calling the vote (25 PC) triggers ratification — 32 parliaments deliberate.',
+  acceding:   'Ratification reveals 3 votes per turn (~11 turns total). Unanimous consent required.',
+}
+
+// How many votes reveal per turn during ratification — matches turnEngine.
+const VOTES_REVEALED_PER_TURN = 3
 
 // ─── Shared primitives ───────────────────────────────────────────────────────
 
@@ -96,18 +109,72 @@ function VoteBreakdown({
   )
 }
 
+// ─── Predicted vote tally (pre-ratification) ─────────────────────────────────
+// Computes the likely yes/abstain/no breakdown using computeMemberTendency, so
+// the player can decide whether to engage skeptical members before calling the vote.
+
+function PredictedTally({
+  candidateId,
+  countries,
+  stateSnap,
+}: {
+  candidateId: string
+  countries: Record<string, Country>
+  stateSnap: GameState
+}) {
+  const natoMembers = Object.values(countries).filter((c) => c.alignment === 'nato')
+  let yesCount = 0, abstCount = 0
+  const noVoters: string[] = []
+  for (const m of natoMembers) {
+    const v = computeMemberTendency(m.id, candidateId, stateSnap)
+    if      (v === 'yes')     yesCount++
+    else if (v === 'abstain') abstCount++
+    else                       noVoters.push(m.id)
+  }
+  return (
+    <div className="mt-2 rounded p-2.5 space-y-1.5" style={{ background: '#f0ede7', border: '1px solid #e7e5e0' }}>
+      <p className="text-xs font-medium uppercase tracking-wider" style={{ color: '#78716c', letterSpacing: '0.1em' }}>
+        Likely tally if vote called now
+      </p>
+      <div className="flex gap-3 flex-wrap text-xs font-medium tabular-nums">
+        <span className="flex items-center gap-1" style={{ color: '#15803d' }}>
+          <Check size={11} strokeWidth={2.5} /> {yesCount} yes
+        </span>
+        <span className="flex items-center gap-1" style={{ color: '#78716c' }}>
+          <Minus size={11} strokeWidth={2.5} /> {abstCount} abstain
+        </span>
+        <span className="flex items-center gap-1" style={{ color: noVoters.length ? '#b91c1c' : '#a8a29e' }}>
+          <X size={11} strokeWidth={2.5} /> {noVoters.length} no
+        </span>
+      </div>
+      {noVoters.length > 0 && (
+        <p className="text-xs" style={{ color: '#b91c1c' }}>
+          Skeptical: {noVoters.map((id) => countries[id]?.name ?? id).join(', ')} — engage before calling the vote.
+        </p>
+      )}
+      {noVoters.length === 0 && (
+        <p className="text-xs" style={{ color: '#15803d' }}>
+          On current trajectory, ratification should succeed. Reveals ~3 votes/turn (~{Math.ceil(natoMembers.length / VOTES_REVEALED_PER_TURN)} turns).
+        </p>
+      )}
+    </div>
+  )
+}
+
 // ─── Active process card ─────────────────────────────────────────────────────
 
 function ProcessCard({
   process,
   countries,
   pc,
+  stateSnap,
   onAdvance,
   onFinalise,
 }: {
   process: AccessionProcess
   countries: Record<string, Country>
   pc: number
+  stateSnap: GameState
   onAdvance: () => void
   onFinalise: () => void
 }) {
@@ -178,9 +245,34 @@ function ProcessCard({
         </p>
       )}
 
+      {/* Stage timing guidance */}
+      {STAGE_TIMING[stage] && (
+        <p className="flex items-start gap-1.5 text-xs" style={{ color: '#78716c' }}>
+          <Clock size={12} strokeWidth={2} style={{ flexShrink: 0, marginTop: 2 }} />
+          <span>{STAGE_TIMING[stage]}</span>
+        </p>
+      )}
+
+      {/* Predicted tally (invitation, before vote called) */}
+      {stage === 'invitation' && !hasVotes && (
+        <PredictedTally candidateId={process.countryId} countries={countries} stateSnap={stateSnap} />
+      )}
+
       {/* Vote breakdown for invitation (blocked) or acceding */}
       {(stage === 'invitation' || stage === 'acceding') && hasVotes && (
-        <VoteBreakdown votes={memberVotes} countries={countries} />
+        <>
+          {stage === 'acceding' && hasPending && (() => {
+            const total = voteVals.length
+            const revealed = total - voteVals.filter((v) => v === 'pending').length
+            const remainingTurns = Math.ceil(voteVals.filter((v) => v === 'pending').length / VOTES_REVEALED_PER_TURN)
+            return (
+              <p className="text-xs" style={{ color: '#57534e' }}>
+                Revealed {revealed} / {total} · ≈{remainingTurns} turn{remainingTurns !== 1 ? 's' : ''} remaining
+              </p>
+            )
+          })()}
+          <VoteBreakdown votes={memberVotes} countries={countries} />
+        </>
       )}
 
       {/* Actions */}
@@ -310,16 +402,20 @@ export default function AccessionPanel({ isOpen, onClose }: Props) {
   const accessionProcesses = useGameStore((s) => s.accessionProcesses)
   const pc                 = useGameStore((s) => s.budgetState.totalPoliticalCapital)
   const allocation         = useGameStore((s) => s.budgetState.allocation)
+  const memberEngagements  = useGameStore((s) => s.budgetState.memberEngagements)
+  const turkeyEngaged      = useGameStore((s) => s.budgetState.turkeyEngaged)
   const advanceAccession   = useGameStore((s) => s.advanceAccession)
   const finaliseAccession  = useGameStore((s) => s.finaliseAccession)
   const initiateDialogue   = useGameStore((s) => s.initiateDialogue)
 
   if (!isOpen) return null
 
-  // Minimal state snapshot for computeAccessionScore
+  // Snapshot rich enough for both computeAccessionScore (uses accessionProcesses + allocation)
+  // and computeMemberTendency (uses countries + memberEngagements + turkeyEngaged).
   const stateForScore = {
+    countries,
     accessionProcesses,
-    budgetState: { allocation },
+    budgetState: { allocation, memberEngagements, turkeyEngaged },
   } as unknown as GameState
 
   const activeProcesses = Object.values(accessionProcesses)
@@ -423,6 +519,7 @@ export default function AccessionPanel({ isOpen, onClose }: Props) {
                     process={proc}
                     countries={countries}
                     pc={pc}
+                    stateSnap={stateForScore}
                     onAdvance={() => advanceAccession(proc.countryId)}
                     onFinalise={() => finaliseAccession(proc.countryId)}
                   />

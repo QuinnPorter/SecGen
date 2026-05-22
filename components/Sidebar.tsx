@@ -132,6 +132,7 @@ export default function Sidebar() {
   const notifications     = useGameStore((s) => s.notifications)
   const resolvedCrises    = useGameStore((s) => s.resolvedCrises)
   const iwPressure        = useGameStore((s) => s.informationWarfare?.pressure ?? 20)
+  const crisisPhase       = useGameStore((s) => s.crisisPhase?.mode ?? 'normal')
 
   const natoMembers  = Object.values(countries).filter((c) => c.alignment === 'nato')
   const memberCount  = natoMembers.length
@@ -213,6 +214,31 @@ export default function Sidebar() {
                 </span>
               </div>
               <StatBar value={iw} color={iwColor} title={`IW pressure: ${iw} / 100`} />
+            </div>
+          )
+        })()}
+
+        {/* Crisis phase indicator */}
+        {(() => {
+          const PHASE_META: Record<string, { label: string; color: string; bg: string; tip: string }> = {
+            calm:   { label: 'Calm period',         color: '#15803d', bg: '#e7f3ec', tip: 'Crisis tempo is low — opportunity to consolidate readiness and pursue accession.' },
+            normal: { label: 'Active',              color: '#b45309', bg: '#fef3c7', tip: 'Standard pacing — expect ongoing pressure across the alliance.' },
+            storm:  { label: 'Heightened pressure', color: '#b91c1c', bg: '#fee2e2', tip: 'Multiple flashpoints likely — crises will arrive faster and may stack near the cap.' },
+          }
+          const meta = PHASE_META[crisisPhase] ?? PHASE_META.normal
+          return (
+            <div title={meta.tip}>
+              <div className="flex items-baseline justify-between mb-1">
+                <span className="text-xs font-medium uppercase tracking-wider" style={{ color: '#78716c' }}>
+                  Crisis tempo
+                </span>
+                <span
+                  className="text-xs font-semibold px-2 py-0.5 rounded"
+                  style={{ background: meta.bg, color: meta.color, border: `1px solid ${meta.color}33` }}
+                >
+                  {meta.label}
+                </span>
+              </div>
             </div>
           )
         })()}

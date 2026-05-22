@@ -45,7 +45,7 @@ export function computeSatisfactionDelta(
   } else {
     // Baseline drift toward 60 (50 for eurosceptic members), accelerated by
     // communications investment. Default ±0.5/turn cap rises with allocation.
-    const baselineTarget = hasTrait(country.id, 'eurosceptic') ? 50 : 60
+    const baselineTarget = hasTrait(country.id, 'eurosceptic', country.runtimeTraits) ? 50 : 60
     const baselineCap = 0.5 + allocation.communications / 80
     const diffTarget = baselineTarget - sat
     const drift = diffTarget > 0 ? Math.min(baselineCap, diffTarget) : Math.max(-baselineCap, diffTarget)

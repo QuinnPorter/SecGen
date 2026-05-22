@@ -6,7 +6,7 @@ import { checkAdversaryReactions } from './adversaryReactions'
 import { checkVictoryConditions, type VictoryResult } from './victoryConditions'
 import { saveGame } from './persistence'
 import { checkForScenarios, SCENARIOS } from './scenarios'
-import { hasTrait } from './countryTraits'
+import { hasTrait, type CountryTrait } from './countryTraits'
 import {
   PC_COST_ENGAGE,
   PC_COST_DIALOGUE,
@@ -31,6 +31,7 @@ export interface Country {
   inAccessionProcess?: boolean // true while an AccessionProcess is active for this country
   highFiscalTurns?: number        // consecutive turns with fiscalPressure > 72
   turnsWithoutEngagement?: number // consecutive turns without memberEngagement
+  runtimeTraits?: CountryTrait[]  // traits acquired at runtime (e.g. from elections); merged with static traits
 }
 
 export interface BudgetAllocation {
@@ -56,6 +57,12 @@ export interface InformationWarfareState {
   pressure: number // 0–100, global IW pressure
 }
 
+export type CrisisPhaseMode = 'calm' | 'normal' | 'storm'
+export interface CrisisPhase {
+  mode: CrisisPhaseMode
+  turnsRemaining: number // turns left in this phase before re-rolling
+}
+
 export type AccessionStage =
   | 'none'
   | 'dialogue'
@@ -72,6 +79,7 @@ export type CrisisType =
   | 'political_instability'
   | 'energy_crisis'
   | 'article5'
+  | 'non_aligned_election'
 
 export type CrisisStatus = 'pending' | 'active' | 'resolved' | 'escalated' | 'ignored'
 
@@ -128,12 +136,13 @@ export interface TurnSummaryData {
 
 export interface PendingEffect {
   id: string
-  crisisId: string
+  crisisId: string                  // empty string for non-crisis flavor effects (e.g. election news)
   turnsRemaining: number
   affectedCountryId: string
   effects: Partial<Record<string, number>>
-  flavourText: string  // shown in sidebar when it fires
+  flavourText: string               // shown in sidebar when it fires
   applied: boolean
+  notificationType?: NotificationType // override default 'delayed_effect' (used by election news)
 }
 
 export interface AccessionProcess {
@@ -160,6 +169,7 @@ export interface GameState {
   crises: Crisis[]
   adversaryTension: number    // 0–100, global adversary tension, starts at 30
   informationWarfare: InformationWarfareState // global IW pressure subsystem
+  crisisPhase: CrisisPhase    // calm/normal/storm pacing state machine
   article5Active: boolean     // true while an article5 crisis is active or pending
   pendingEffects: PendingEffect[]
   resolvedCrises: Crisis[]
@@ -228,7 +238,7 @@ function applyCrisisEffects(
   ctx: { countries: Record<string, Country>; approvalRating: number; adversaryTension: number },
 ): { countries: Record<string, Country>; approvalRating: number; adversaryTension: number } {
   let { countries, approvalRating, adversaryTension } = ctx
-  const isKingmaker = hasTrait(affectedCountryId, 'kingmaker')
+  const isKingmaker = hasTrait(affectedCountryId, 'kingmaker', countries[affectedCountryId]?.runtimeTraits)
 
   for (const [key, delta] of Object.entries(effects)) {
     if (!delta) continue
@@ -301,6 +311,11 @@ export function initialInformationWarfare(difficulty: Difficulty): InformationWa
   return { pressure: 20 }
 }
 
+export function initialCrisisPhase(): CrisisPhase {
+  // Start in normal; the first phase tick after a few turns will roll a fresh draw.
+  return { mode: 'normal', turnsRemaining: 4 }
+}
+
 // ── Scenario-mode helpers ─────────────────────────────────────────────────────
 
 const DEFAULT_SCENARIO_MODE: 'historical' | 'alternate' = 'alternate'
@@ -339,6 +354,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   crises: [],
   adversaryTension: 30,
   informationWarfare: { pressure: 20 },
+  crisisPhase: initialCrisisPhase(),
   article5Active: false,
   pendingEffects: [],
   notifications: [],
@@ -539,9 +555,28 @@ export const useGameStore = create<GameState>((set, get) => ({
       const process = state.accessionProcesses[countryId]
       if (!process || process.stage !== 'acceding') return state
 
-      // All votes must be resolved (no pending) and unanimous (no 'no' votes)
-      const votes = Object.values(process.memberVotes)
-      if (votes.some((v) => v === 'pending') || votes.some((v) => v === 'no')) return state
+      // Diagnose blockers and dispatch a clarifying notification instead of
+      // silently no-opping. The button is also disabled in the UI but we
+      // belt-and-suspenders this in case the player races the state.
+      const voteEntries = Object.entries(process.memberVotes)
+      const pendingCount = voteEntries.filter(([, v]) => v === 'pending').length
+      const blockers = voteEntries.filter(([, v]) => v === 'no').map(([k]) => k)
+      const candidateName = state.countries[countryId]?.name ?? countryId
+
+      if (pendingCount > 0 || blockers.length > 0) {
+        const text = blockers.length > 0
+          ? `Ratification blocked: ${blockers.map((id) => state.countries[id]?.name ?? id).join(', ')} ` +
+            `${blockers.length === 1 ? 'opposes' : 'oppose'} ${candidateName} accession. Unanimous consent is required.`
+          : `Ratification in progress — ${pendingCount} of ${voteEntries.length} parliaments still deliberating.`
+        return {
+          notifications: [...state.notifications, {
+            id: crypto.randomUUID(),
+            text,
+            turn: state.turn,
+            type: 'accession_update' as NotificationType,
+          }].slice(-20),
+        }
+      }
 
       const updatedCountry: Country = {
         ...state.countries[countryId],
@@ -703,6 +738,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         crises: [],
         adversaryTension: difficulty === 'crisis' ? 50 : 30,
         informationWarfare: initialInformationWarfare(difficulty),
+        crisisPhase: initialCrisisPhase(),
         article5Active: false,
         pendingEffects: [],
         notifications: [],
@@ -761,6 +797,9 @@ export const useGameStore = create<GameState>((set, get) => ({
 
       const baseCrises = passive.crises ?? state.crises
       const nextNotifications: Notification[] = [...state.notifications]
+      // Phase-transition + vote-reveal notes (from applyPassiveChanges) surface same turn
+      if (passive.phaseTransitionNote) nextNotifications.push(passive.phaseTransitionNote)
+      if (passive.voteRevealNotes) nextNotifications.push(...passive.voteRevealNotes)
       let workingArticle5Active = state.article5Active
       let workingIwPressure = passive.informationWarfare?.pressure ?? state.informationWarfare.pressure
       const extraCrises: Crisis[] = []
@@ -825,9 +864,15 @@ export const useGameStore = create<GameState>((set, get) => ({
       const finalCrises = [...nextCrises, ...extraCrises]
 
       // ── Pending effects tick ───────────────────────────────────────────────
+      // Election-news effects from this turn are appended so they tick alongside
+      // crisis delayed effects. They'll fire next turn (turnsRemaining starts at 1).
+      const allPendingEffects: PendingEffect[] = [
+        ...state.pendingEffects,
+        ...(passive.newElectionEffects ?? []),
+      ]
       const nextPendingEffects: PendingEffect[] = []
       const firedDelayedEffects: string[] = []
-      for (const pe of state.pendingEffects) {
+      for (const pe of allPendingEffects) {
         const remaining = pe.turnsRemaining - 1
         if (remaining <= 0) {
           const r = applyCrisisEffects(
@@ -843,7 +888,7 @@ export const useGameStore = create<GameState>((set, get) => ({
             id: crypto.randomUUID(),
             text: pe.flavourText,
             turn: state.turn + 1,
-            type: 'delayed_effect',
+            type: pe.notificationType ?? 'delayed_effect',
           })
           // Drop applied effects from the array — they're done
         } else {
@@ -954,8 +999,15 @@ export const useGameStore = create<GameState>((set, get) => ({
       const nextActiveScenarios     = [...state.activeScenarios,    ...newScenarioIds]
       const nextTriggeredScenarios  = [...state.triggeredScenarios, ...newScenarioIds]
 
+      // Strip the helper-only fields before spreading — they're not part of GameState.
+      const {
+        phaseTransitionNote: _ptn,
+        voteRevealNotes: _vrn,
+        newElectionEffects: _nee,
+        ...passiveStateOnly
+      } = passive
       return {
-        ...passive,
+        ...passiveStateOnly,
         countries:          workingCountries,
         approvalRating:     workingApproval,
         adversaryTension:   workingTension,
@@ -1000,6 +1052,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       crises: [],
       adversaryTension: 30,
       informationWarfare: { pressure: 20 },
+      crisisPhase: initialCrisisPhase(),
       article5Active: false,
       pendingEffects: [],
       notifications: [],

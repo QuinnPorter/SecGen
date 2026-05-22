@@ -274,9 +274,9 @@ export default function CountryPanel() {
           </div>
 
           {/* Trait chips */}
-          {traitsFor(country.id).length > 0 && (
+          {traitsFor(country.id, country.runtimeTraits).length > 0 && (
             <div className="flex flex-wrap gap-1.5 mb-5">
-              {traitsFor(country.id).map((t) => {
+              {traitsFor(country.id, country.runtimeTraits).map((t) => {
                 const meta = TRAIT_DISPLAY[t]
                 return (
                   <span

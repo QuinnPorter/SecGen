@@ -22,8 +22,8 @@ export const TRAIT_TRIGGER_MOD: Record<CountryTrait, Partial<Record<CrisisType, 
   fiscal_hawk:      { budget_cut: 1.4, political_instability: 1.2 },
   cyber_target:     { hybrid_attack: 1.5 },
   energy_dependent: { energy_crisis: 1.3 },
-  kingmaker:        {},
-  eurosceptic:      { withdrawal_threat: 1.5, political_instability: 1.2 },
+  kingmaker:        { non_aligned_election: 0.7 },
+  eurosceptic:      { withdrawal_threat: 1.5, political_instability: 1.2, non_aligned_election: 1.5 },
 }
 
 // Per-country trait assignments. Most members get 0–2 traits.
@@ -62,18 +62,39 @@ export const TRAITS_BY_COUNTRY: Record<string, CountryTrait[]> = {
   MDA: ['energy_dependent'],
 }
 
-export function traitsFor(countryId: string): readonly CountryTrait[] {
-  return TRAITS_BY_COUNTRY[countryId] ?? []
+// Merge static (TRAITS_BY_COUNTRY) and runtime traits (acquired via in-game
+// events like elections). Runtime traits are de-duplicated with the base set.
+export function traitsFor(
+  countryId: string,
+  runtime?: readonly CountryTrait[],
+): readonly CountryTrait[] {
+  const base = TRAITS_BY_COUNTRY[countryId] ?? []
+  if (!runtime || runtime.length === 0) return base
+  if (base.length === 0) return runtime
+  const merged: CountryTrait[] = [...base]
+  for (const t of runtime) {
+    if (!merged.includes(t)) merged.push(t)
+  }
+  return merged
 }
 
-export function hasTrait(countryId: string, trait: CountryTrait): boolean {
-  return (TRAITS_BY_COUNTRY[countryId] ?? []).includes(trait)
+export function hasTrait(
+  countryId: string,
+  trait: CountryTrait,
+  runtime?: readonly CountryTrait[],
+): boolean {
+  if ((TRAITS_BY_COUNTRY[countryId] ?? []).includes(trait)) return true
+  return runtime?.includes(trait) ?? false
 }
 
 // Compose trigger multipliers across all traits a country has for a crisis type.
-export function traitTriggerMultiplier(countryId: string, crisisType: CrisisType): number {
+export function traitTriggerMultiplier(
+  countryId: string,
+  crisisType: CrisisType,
+  runtime?: readonly CountryTrait[],
+): number {
   let mult = 1
-  for (const trait of TRAITS_BY_COUNTRY[countryId] ?? []) {
+  for (const trait of traitsFor(countryId, runtime)) {
     const traitMods = TRAIT_TRIGGER_MOD[trait]
     const m = traitMods[crisisType]
     if (m !== undefined) mult *= m

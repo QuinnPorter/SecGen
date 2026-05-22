@@ -98,6 +98,10 @@ export function loadGame(): GameState | null {
     if (!parsed.informationWarfare || typeof parsed.informationWarfare.pressure !== 'number') {
       parsed.informationWarfare = { pressure: 20 }
     }
+    // Migrate older saves missing the crisisPhase pacing state machine
+    if (!parsed.crisisPhase || typeof parsed.crisisPhase.mode !== 'string') {
+      parsed.crisisPhase = { mode: 'normal', turnsRemaining: 4 }
+    }
     return parsed
   } catch {
     localStorage.removeItem(SAVE_KEY)

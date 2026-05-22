@@ -1,10 +1,13 @@
 import {
   type Country,
   type Crisis,
+  type CrisisPhase,
+  type CrisisPhaseMode,
   type GameState,
   type AccessionProcess,
   type Notification,
   type NotificationType,
+  type PendingEffect,
 } from './gameState'
 import { computeReadinessDelta, computeSatisfactionDelta, computeThreatDelta } from './budgetHelpers'
 import { computeAccessionScore } from './accessionHelpers'
@@ -13,6 +16,7 @@ import { checkAdversaryReactions } from './adversaryReactions'
 import { checkForNewCrises } from './crisisTriggers'
 import { buildCrisis } from './crisisDefinitions'
 import { hasTrait } from './countryTraits'
+import { generateElectionNews } from './electionNews'
 
 function clamp(v: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, v))
@@ -32,10 +36,81 @@ function adjustTurnsToResolve(base: number, difficulty: string): number {
   return base
 }
 
-export function applyPassiveChanges(state: GameState): Partial<GameState> {
+// ── Crisis phase Markov machine ───────────────────────────────────────────────
+// Transitions when turnsRemaining hits 0. Storm column biases up when adversary
+// tension or IW pressure is elevated. Returns the next phase plus an optional
+// notification to surface the transition to the player.
+
+const PHASE_TRANSITIONS: Record<CrisisPhaseMode, Record<CrisisPhaseMode, number>> = {
+  calm:   { calm: 0.50, normal: 0.40, storm: 0.10 },
+  normal: { calm: 0.25, normal: 0.55, storm: 0.20 },
+  storm:  { calm: 0.10, normal: 0.40, storm: 0.50 },
+}
+
+const PHASE_TRANSITION_TEXT: Record<CrisisPhaseMode, string> = {
+  calm:   'Geopolitical tensions easing — analysts expect a calm period ahead.',
+  normal: 'Pressure normalising — situation room returns to standard tempo.',
+  storm:  'Multiple flashpoints emerging — expect elevated crisis tempo.',
+}
+
+function rollPhaseTransition(from: CrisisPhaseMode, biasStorm: boolean): CrisisPhaseMode {
+  const base = { ...PHASE_TRANSITIONS[from] }
+  if (biasStorm) {
+    // Shift +0.15 toward storm, proportionally subtracted from calm & normal.
+    const shift = 0.15
+    const giveup = base.calm + base.normal
+    if (giveup > 0) {
+      const calmCut = (base.calm / giveup) * shift
+      const normalCut = (base.normal / giveup) * shift
+      base.calm   = Math.max(0, base.calm - calmCut)
+      base.normal = Math.max(0, base.normal - normalCut)
+      base.storm  = Math.min(1, base.storm + shift)
+    }
+  }
+  const r = Math.random()
+  let acc = 0
+  for (const mode of ['calm', 'normal', 'storm'] as CrisisPhaseMode[]) {
+    acc += base[mode]
+    if (r <= acc) return mode
+  }
+  return 'normal'
+}
+
+function tickCrisisPhase(state: GameState): { phase: CrisisPhase; note: Notification | null } {
+  const prev = state.crisisPhase ?? { mode: 'normal' as CrisisPhaseMode, turnsRemaining: 4 }
+  const tr   = prev.turnsRemaining - 1
+  if (tr > 0) {
+    return { phase: { mode: prev.mode, turnsRemaining: tr }, note: null }
+  }
+  // Time to roll. Bias toward storm if tension or IW pressure is elevated.
+  const biasStorm = state.adversaryTension > 70 || (state.informationWarfare?.pressure ?? 0) > 70
+  const nextMode  = rollPhaseTransition(prev.mode, biasStorm)
+  const duration  = 3 + Math.floor(Math.random() * 4) // 3–6 turns
+  const note: Notification | null = nextMode !== prev.mode
+    ? {
+        id: crypto.randomUUID(),
+        text: PHASE_TRANSITION_TEXT[nextMode],
+        turn: state.turn + 1,
+        type: 'info' as NotificationType,
+      }
+    : null
+  return { phase: { mode: nextMode, turnsRemaining: duration }, note }
+}
+
+export function applyPassiveChanges(
+  state: GameState,
+): Partial<GameState> & {
+  phaseTransitionNote?: Notification
+  voteRevealNotes?: Notification[]
+  newElectionEffects?: PendingEffect[]
+} {
   const updatedCountries = { ...state.countries }
   const { allocation, memberEngagements } = state.budgetState
   const difficulty = state.difficulty ?? 'normal'
+
+  // ── Crisis phase tick ──────────────────────────────────────────────────────
+  const phaseTick = tickCrisisPhase(state)
+  const voteRevealNotes: Notification[] = []
 
   // ── Information warfare pressure tick ──────────────────────────────────────
   // Climbs with adversaryTension, drained by combined cyberDefence + comms.
@@ -92,7 +167,7 @@ export function applyPassiveChanges(state: GameState): Partial<GameState> {
     }
 
     // IW bleed: cyber_target members lose satisfaction while IW pressure is high
-    if (iwSatBleed > 0 && hasTrait(id, 'cyber_target')) {
+    if (iwSatBleed > 0 && hasTrait(id, 'cyber_target', c.runtimeTraits)) {
       const base = next.allianceSatisfaction ?? c.allianceSatisfaction
       next.allianceSatisfaction = clamp(base - iwSatBleed, 0, 100)
     }
@@ -178,7 +253,9 @@ export function applyPassiveChanges(state: GameState): Partial<GameState> {
       }
     }
 
-    // 4. Vote resolution: reveal 3 pending votes per turn from the snapshot
+    // 4. Vote resolution: reveal 3 pending votes per turn from the snapshot.
+    //    Any 'no' vote revealed this turn surfaces as a notification so the
+    //    player understands why ratification stalls.
     if (updatedProc.stage === 'acceding' && updatedProc.pendingVoteSnapshot) {
       const snapshot  = updatedProc.pendingVoteSnapshot
       const votes     = { ...updatedProc.memberVotes }
@@ -186,6 +263,16 @@ export function applyPassiveChanges(state: GameState): Partial<GameState> {
       const toResolve = pendingIds.slice(0, 3)
       for (const memberId of toResolve) {
         votes[memberId] = snapshot[memberId]
+        if (snapshot[memberId] === 'no') {
+          const voterName = updatedCountries[memberId]?.name ?? memberId
+          const candidateName = updatedCountries[id]?.name ?? id
+          voteRevealNotes.push({
+            id: crypto.randomUUID(),
+            text: `${voterName} votes NO on ${candidateName} accession — ratification stalled (unanimous consent required).`,
+            turn: state.turn + 1,
+            type: 'accession_update' as NotificationType,
+          })
+        }
       }
       updatedProc = { ...updatedProc, memberVotes: votes }
     }
@@ -193,7 +280,7 @@ export function applyPassiveChanges(state: GameState): Partial<GameState> {
     nextAccessionProcesses[id] = updatedProc
   }
 
-  // Check for newly triggered crises based on current game state (using updated IW)
+  // Check for newly triggered crises based on current game state (using updated IW + phase)
   const triggeredCrises = checkForNewCrises({
     ...state,
     countries: updatedCountries,
@@ -201,10 +288,15 @@ export function applyPassiveChanges(state: GameState): Partial<GameState> {
     accessionProcesses: nextAccessionProcesses,
     approvalRating,
     informationWarfare: { pressure: iwAfter },
+    crisisPhase: phaseTick.phase,
   })
   if (triggeredCrises.length > 0) {
     nextCrises = [...nextCrises, ...triggeredCrises]
   }
+
+  // ── Election news flavor ──────────────────────────────────────────────────
+  // Generate any per-country election headlines that should fire next turn.
+  const newElectionEffects = generateElectionNews(state)
 
   return {
     countries:          updatedCountries,
@@ -212,6 +304,10 @@ export function applyPassiveChanges(state: GameState): Partial<GameState> {
     accessionProcesses: nextAccessionProcesses,
     crises:             nextCrises,
     informationWarfare: { pressure: iwAfter },
+    crisisPhase:        phaseTick.phase,
+    ...(phaseTick.note ? { phaseTransitionNote: phaseTick.note } : {}),
+    ...(voteRevealNotes.length > 0 ? { voteRevealNotes } : {}),
+    ...(newElectionEffects.length > 0 ? { newElectionEffects } : {}),
   }
 }
 
@@ -262,7 +358,7 @@ export function handleEscalationSideEffects(
 
   // WITHDRAWAL THREAT → strategic_crisis notification for anchor (kingmaker) members
   if (crisis.type === 'withdrawal_threat') {
-    if (hasTrait(crisis.affectedCountryId, 'kingmaker')) {
+    if (hasTrait(crisis.affectedCountryId, 'kingmaker', countries[crisis.affectedCountryId]?.runtimeTraits)) {
       newNotifications.push({
         id: crypto.randomUUID(),
         text: `STRATEGIC CRISIS: ${countryName} has suspended NATO commitments — alliance cohesion at risk.`,
@@ -270,6 +366,36 @@ export function handleEscalationSideEffects(
         type: 'strategic_crisis' as NotificationType,
       })
     }
+  }
+
+  // NON-ALIGNED ELECTION → permanently mark eurosceptic; flip to neutral if morale collapsed
+  if (crisis.type === 'non_aligned_election' && country) {
+    const existingTraits = country.runtimeTraits ?? []
+    const nextTraits = existingTraits.includes('eurosceptic')
+      ? existingTraits
+      : ([...existingTraits, 'eurosceptic'] as typeof existingTraits)
+    let updatedCountry: Country = { ...country, runtimeTraits: nextTraits }
+    // If satisfaction has collapsed and the country isn't a kingmaker, alignment flips.
+    if (
+      country.allianceSatisfaction < 30 &&
+      !hasTrait(country.id, 'kingmaker', existingTraits)
+    ) {
+      updatedCountry = { ...updatedCountry, alignment: 'neutral' }
+      newNotifications.push({
+        id: crypto.randomUUID(),
+        text: `${countryName} suspends NATO participation following election results.`,
+        turn: nextTurn,
+        type: 'strategic_crisis' as NotificationType,
+      })
+    } else {
+      newNotifications.push({
+        id: crypto.randomUUID(),
+        text: `${countryName}'s alliance posture cools further — country now structurally eurosceptic.`,
+        turn: nextTurn,
+        type: 'info' as NotificationType,
+      })
+    }
+    updatedCountries = { ...updatedCountries, [crisis.affectedCountryId]: updatedCountry }
   }
 
   // BUDGET CUT → GDP -0.4; if readiness < 45, cascade FOREIGN THREAT to most-exposed border member
@@ -293,7 +419,7 @@ export function handleEscalationSideEffects(
             (c.status === 'active' || c.status === 'pending'),
         )
       const target = Object.values(updatedCountries)
-        .filter((c) => c.alignment === 'nato' && hasTrait(c.id, 'frontline') && !hasActiveForeignThreat(c.id))
+        .filter((c) => c.alignment === 'nato' && hasTrait(c.id, 'frontline', c.runtimeTraits) && !hasActiveForeignThreat(c.id))
         .sort((a, b) => b.threatLevel - a.threatLevel)[0]
       if (target) {
         const snap: GameState = { ...baseState, countries: updatedCountries }

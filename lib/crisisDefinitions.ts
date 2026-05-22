@@ -773,5 +773,93 @@ export function buildCrisis(
       return buildEnergyCrisis(countryId, countryName)
     case 'article5':
       return buildArticle5(countryId, countryName)
+    case 'non_aligned_election':
+      return buildNonAlignedElection(countryId, countryName)
+  }
+}
+
+// ── NON-ALIGNED ELECTION ──────────────────────────────────────────────────────
+// A NATO member elects a leadership skeptical of the alliance. The player picks
+// from four responses; failure to act risks the country drifting toward neutrality.
+
+function buildNonAlignedElection(countryId: string, countryName: string): Crisis {
+  const severity = hasTrait(countryId, 'kingmaker') ? 'critical' as const : 'high' as const
+
+  const options: CrisisOption[] = [
+    {
+      id: 'diplomatic_engagement',
+      label: 'Diplomatic Engagement',
+      description:
+        `Open a sustained bilateral channel with ${countryName}'s new government to find common ground on alliance commitments.`,
+      capitalCost: 35,
+      consequences: {
+        immediate:
+          `${countryName}'s leadership responds to high-level outreach. Public messaging softens; commitments hold.`,
+        delayed:
+          'Follow-up visits and joint announcements anchor the relationship; satisfaction continues to recover.',
+      },
+      effects: { allianceSatisfaction: 8, approvalRating: 2 },
+    },
+    {
+      id: 'public_pressure',
+      label: 'Public Pressure Campaign',
+      description:
+        `Mobilise allied media and civil society to highlight the costs of stepping back from NATO commitments.`,
+      capitalCost: 25,
+      consequences: {
+        immediate:
+          `Public framing forces ${countryName}'s coalition to defend its alliance position — modest gain, but the move bruises domestic politics.`,
+        delayed:
+          'The pressure has lasting effects on coalition dynamics — political instability is more likely.',
+      },
+      effects: { allianceSatisfaction: 4, approvalRating: -3, fiscalPressure: 3 },
+    },
+    {
+      id: 'quiet_accommodation',
+      label: 'Quiet Accommodation',
+      description:
+        `Accept the new political reality and adjust expectations — relieve burden requests, accept the rhetorical distance.`,
+      capitalCost: 10,
+      consequences: {
+        immediate:
+          `${countryName}'s government welcomes the eased pressure. Fiscal stress drops, but the country's alliance posture cools.`,
+        delayed:
+          'The accommodation has bedded in. ${countryName} is structurally more Eurosceptic going forward.',
+      },
+      effects: { allianceSatisfaction: -3, fiscalPressure: -3 },
+    },
+    {
+      id: 'wait_and_see',
+      label: 'Wait and See',
+      description:
+        'Refrain from intervention and let the new coalition find its footing on its own terms.',
+      capitalCost: 0,
+      consequences: {
+        immediate:
+          'No public NATO response. The new government has free rein to define its alliance stance.',
+        delayed:
+          'The wait risks letting the country drift — if unresolved, alignment may shift.',
+      },
+      effects: { allianceSatisfaction: -5 },
+    },
+  ]
+
+  return {
+    id: newId(),
+    type: 'non_aligned_election',
+    status: 'pending',
+    affectedCountryId: countryId,
+    title: `${countryName}: Alliance-skeptic coalition wins election`,
+    description:
+      `${countryName}'s electorate has handed power to a coalition openly skeptical of NATO commitments, ` +
+      `pledging to renegotiate burden sharing and review long-standing alliance positions. ` +
+      `Without a deliberate response, the country may drift toward strategic neutrality.`,
+    severity,
+    turnsUntilActive: 0,
+    turnsActive: 0,
+    turnsToResolve: 3,
+    options,
+    chosenOptionId: null,
+    delayedEffectApplied: false,
   }
 }

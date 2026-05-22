@@ -10,12 +10,20 @@ function adjustTurnsToResolve(base: number, difficulty: string): number {
 
 // Hard cap on simultaneously active+pending crises spawned from passive triggers.
 // Article 5 cascades from handleEscalationSideEffects are exempt and bypass this cap.
-export const MAX_CONCURRENT_CRISES = 5
+export const MAX_CONCURRENT_CRISES = 4
 
 // Global probability multiplier applied to every passive-trigger roll.
 // Combined with per-category/per-trait modifiers, this lets the player suppress
 // crisis frequency through targeted budget investment.
 export const GLOBAL_TRIGGER_MOD = 0.9
+
+// Phase-mode probability multipliers. The phase machine ticks in turnEngine and
+// makes the game feel bursty: long calm stretches punctuated by storms.
+export const PHASE_MOD: Record<string, number> = {
+  calm:   0.45,
+  normal: 1.0,
+  storm:  1.6,
+}
 
 function roll(probability: number): boolean {
   return Math.random() < probability
@@ -55,12 +63,13 @@ export function checkForNewCrises(gameState: GameState): Crisis[] {
   }
 
   const highTensionBonus = adversaryTension > 80 ? 0.2 : 0
+  const phaseMod = PHASE_MOD[gameState.crisisPhase?.mode ?? 'normal'] ?? 1.0
 
   // ── Per-category trigger modifiers ─────────────────────────────────────────
   // Each budget slider suppresses one or two crisis types. Multipliers compose
   // with GLOBAL_TRIGGER_MOD inside the existing roll() calls.
   const cyberMod   = 1 - allocation.cyberDefence   / 200  // hybrid_attack (and adversary_reaction)
-  const commsMod   = 1 - allocation.communications / 250  // political_instability, withdrawal_threat
+  const commsMod   = 1 - allocation.communications / 250  // political_instability, withdrawal_threat, non_aligned_election
   const readyMod   = 1 - allocation.troopReadiness / 300  // foreign_threat
   const partnerMod = 1 - allocation.partnerAid     / 250  // budget_cut, energy_crisis
 
@@ -83,7 +92,7 @@ export function checkForNewCrises(gameState: GameState): Crisis[] {
       (country.highFiscalTurns ?? 0) >= 2 &&
       country.gdpDefencePercent < 2.2 &&
       !isEngaged &&
-      roll(0.85 * GLOBAL_TRIGGER_MOD * partnerMod * traitTriggerMultiplier(country.id, 'budget_cut'))
+      roll(0.85 * GLOBAL_TRIGGER_MOD * phaseMod * partnerMod * traitTriggerMultiplier(country.id, 'budget_cut', country.runtimeTraits))
     ) {
       const crisis = buildCrisis('budget_cut', country.id, gameState)
       newCrises.push({ ...crisis, turnsUntilActive: 1 })
@@ -95,9 +104,9 @@ export function checkForNewCrises(gameState: GameState): Crisis[] {
       !atCap() &&
       !hasActiveCrisis(country.id, 'foreign_threat') &&
       country.threatLevel > 65 &&
-      hasTrait(country.id, 'frontline') &&
+      hasTrait(country.id, 'frontline', country.runtimeTraits) &&
       allianceReadiness < 65 &&
-      roll((0.70 + highTensionBonus) * GLOBAL_TRIGGER_MOD * readyMod * traitTriggerMultiplier(country.id, 'foreign_threat'))
+      roll((0.70 + highTensionBonus) * GLOBAL_TRIGGER_MOD * phaseMod * readyMod * traitTriggerMultiplier(country.id, 'foreign_threat', country.runtimeTraits))
     ) {
       const crisis = buildCrisis('foreign_threat', country.id, gameState)
       newCrises.push({ ...crisis, turnsUntilActive: 1 })
@@ -111,7 +120,7 @@ export function checkForNewCrises(gameState: GameState): Crisis[] {
       country.allianceSatisfaction < 35 &&
       country.fiscalPressure > 60 &&
       turn > 8 &&
-      roll(0.60 * GLOBAL_TRIGGER_MOD * commsMod * traitTriggerMultiplier(country.id, 'withdrawal_threat'))
+      roll(0.60 * GLOBAL_TRIGGER_MOD * phaseMod * commsMod * traitTriggerMultiplier(country.id, 'withdrawal_threat', country.runtimeTraits))
     ) {
       const crisis = buildCrisis('withdrawal_threat', country.id, gameState)
       newCrises.push({ ...crisis, turnsUntilActive: 1 })
@@ -125,7 +134,7 @@ export function checkForNewCrises(gameState: GameState): Crisis[] {
       country.allianceSatisfaction < 45 &&
       country.fiscalPressure > 55 &&
       (country.turnsWithoutEngagement ?? 0) > 6 &&
-      roll(0.50 * GLOBAL_TRIGGER_MOD * commsMod * traitTriggerMultiplier(country.id, 'political_instability'))
+      roll(0.50 * GLOBAL_TRIGGER_MOD * phaseMod * commsMod * traitTriggerMultiplier(country.id, 'political_instability', country.runtimeTraits))
     ) {
       const crisis = buildCrisis('political_instability', country.id, gameState)
       newCrises.push({ ...crisis, turnsUntilActive: 1 })
@@ -136,12 +145,26 @@ export function checkForNewCrises(gameState: GameState): Crisis[] {
     if (
       !atCap() &&
       !hasActiveCrisis(country.id, 'energy_crisis') &&
-      hasTrait(country.id, 'energy_dependent') &&
+      hasTrait(country.id, 'energy_dependent', country.runtimeTraits) &&
       turn > 6 &&
       (hasAnyCrisis('adversary_reaction') || adversaryTension > 60) &&
-      roll(0.55 * GLOBAL_TRIGGER_MOD * partnerMod * traitTriggerMultiplier(country.id, 'energy_crisis'))
+      roll(0.55 * GLOBAL_TRIGGER_MOD * phaseMod * partnerMod * traitTriggerMultiplier(country.id, 'energy_crisis', country.runtimeTraits))
     ) {
       const crisis = buildCrisis('energy_crisis', country.id, gameState)
+      newCrises.push({ ...crisis, turnsUntilActive: 1 })
+    }
+
+    // ── NON-ALIGNED ELECTION ──────────────────────────────────────────────────
+    // Members with low satisfaction or eurosceptic posture can elect a skeptic
+    // leader. Rare base rate (0.18) is amplified by traits + phaseMod.
+    if (
+      !atCap() &&
+      !hasActiveCrisis(country.id, 'non_aligned_election') &&
+      turn > 6 &&
+      (country.allianceSatisfaction < 55 || hasTrait(country.id, 'eurosceptic', country.runtimeTraits)) &&
+      roll(0.18 * GLOBAL_TRIGGER_MOD * phaseMod * commsMod * traitTriggerMultiplier(country.id, 'non_aligned_election', country.runtimeTraits))
+    ) {
+      const crisis = buildCrisis('non_aligned_election', country.id, gameState)
       newCrises.push({ ...crisis, turnsUntilActive: 1 })
     }
   }
@@ -159,12 +182,13 @@ export function checkForNewCrises(gameState: GameState): Crisis[] {
     turn > 4 &&
     Object.values(countries).some((c) => c.alignment === 'adversary')
   ) {
-    const cyberTargets = natoMembers.filter((c) => hasTrait(c.id, 'cyber_target'))
+    const cyberTargets = natoMembers.filter((c) => hasTrait(c.id, 'cyber_target', c.runtimeTraits))
     const candidates   = (cyberTargets.length > 0 ? cyberTargets : natoMembers).slice().sort((a, b) => b.threatLevel - a.threatLevel)
     const target = candidates[0]
     if (target) {
-      const targetMod = traitTriggerMultiplier(target.id, 'hybrid_attack')
-      const baseProb  = (0.40 + highTensionBonus) * GLOBAL_TRIGGER_MOD * cyberMod * targetMod * iwBoost
+      const targetMod = traitTriggerMultiplier(target.id, 'hybrid_attack', target.runtimeTraits)
+      // iwForceSpawn (pressure > 85) ignores phaseMod — it's an emergency override.
+      const baseProb  = (0.40 + highTensionBonus) * GLOBAL_TRIGGER_MOD * phaseMod * cyberMod * targetMod * iwBoost
       if (iwForceSpawn || roll(baseProb)) {
         const crisis = buildCrisis('hybrid_attack', target.id, gameState)
         // Force high severity when IW pressure is critical
