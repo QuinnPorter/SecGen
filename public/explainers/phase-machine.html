@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Crisis Phase Machine — Balance Explainer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Serif:wght@500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #fafaf9;
+      --surface: #f5f3ef;
+      --border: #e7e5e0;
+      --text: #1c1917;
+      --muted: #78716c;
+      --dim: #a8a29e;
+      --nato: #004990;
+      --nato-soft: #e0eaf5;
+      --calm: #15803d;
+      --normal: #b45309;
+      --storm: #b91c1c;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    .container { max-width: 920px; margin: 0 auto; padding: 32px 24px 48px; }
+    h1 {
+      font-family: 'IBM Plex Serif', Georgia, serif;
+      font-weight: 600;
+      font-size: 28px;
+      margin: 0 0 4px;
+      letter-spacing: -0.01em;
+      color: var(--nato);
+    }
+    .subtitle {
+      color: var(--muted);
+      font-size: 12px;
+      font-family: 'IBM Plex Mono', ui-monospace, monospace;
+      margin-bottom: 28px;
+      line-height: 1.6;
+    }
+    .section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px 22px;
+      margin-bottom: 14px;
+    }
+    .section h2 {
+      font-family: 'IBM Plex Serif', Georgia, serif;
+      font-weight: 600;
+      font-size: 16px;
+      margin: 0 0 12px;
+      color: var(--text);
+    }
+    .section p.note {
+      color: var(--muted);
+      font-size: 12px;
+      margin: -4px 0 14px;
+      line-height: 1.5;
+    }
+    .row {
+      display: grid;
+      grid-template-columns: 110px 1fr 64px;
+      gap: 14px;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+    .row label {
+      font-size: 12px;
+      color: var(--muted);
+      font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    }
+    .row input[type="range"] { width: 100%; accent-color: var(--nato); }
+    .row .val {
+      font-family: 'IBM Plex Mono', ui-monospace, monospace;
+      font-size: 13px;
+      text-align: right;
+      color: var(--text);
+      font-weight: 500;
+    }
+    .matrix-row { border-top: 1px solid var(--border); padding: 10px 0 4px; }
+    .matrix-row:first-of-type { border-top: none; padding-top: 0; }
+    .matrix-header {
+      font-size: 11px;
+      color: var(--muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .matrix-header .swatch {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 2px;
+      vertical-align: middle;
+    }
+    .row-sum {
+      font-size: 11px;
+      padding: 2px 7px;
+      border-radius: 3px;
+      font-family: 'IBM Plex Mono', ui-monospace, monospace;
+      font-weight: 500;
+      margin-left: auto;
+    }
+    .row-sum.ok { background: #dcfce7; color: var(--calm); }
+    .row-sum.bad { background: #fee2e2; color: var(--storm); }
+    .timeline {
+      display: flex;
+      height: 22px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+      margin: 8px 0;
+    }
+    .timeline-cell { flex: 1; min-width: 2px; }
+    .legend {
+      display: flex;
+      gap: 18px;
+      font-size: 12px;
+      color: var(--muted);
+      font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    }
+    .legend-chip {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 2px;
+      margin-right: 5px;
+      vertical-align: -1px;
+    }
+    .bars { display: flex; flex-direction: column; gap: 6px; margin: 8px 0; }
+    .bar-row {
+      display: grid;
+      grid-template-columns: 60px 1fr 56px;
+      gap: 12px;
+      align-items: center;
+    }
+    .bar-row label {
+      font-size: 12px;
+      color: var(--muted);
+      font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    }
+    .bar-track {
+      height: 12px;
+      background: var(--border);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .bar-fill { height: 100%; transition: width 0.2s ease-out; }
+    .bar-row .val {
+      font-family: 'IBM Plex Mono', ui-monospace, monospace;
+      font-size: 12px;
+      text-align: right;
+    }
+    .scalar {
+      background: var(--nato-soft);
+      border: 1px solid var(--nato);
+      padding: 12px 18px;
+      border-radius: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-top: 12px;
+    }
+    .scalar-label {
+      font-size: 11px;
+      color: var(--nato);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .scalar-value {
+      font-family: 'IBM Plex Mono', ui-monospace, monospace;
+      font-size: 22px;
+      font-weight: 600;
+      color: var(--nato);
+    }
+    .toolbar {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin: 8px 0;
+      flex-wrap: wrap;
+    }
+    button {
+      background: var(--nato);
+      color: white;
+      border: 0;
+      padding: 8px 14px;
+      border-radius: 5px;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    button:hover { background: #003874; }
+    button.ghost {
+      background: transparent;
+      color: var(--nato);
+      border: 1px solid var(--border);
+    }
+    button.ghost:hover { background: var(--bg); border-color: var(--nato); }
+    label.toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      color: var(--text);
+      cursor: pointer;
+      user-select: none;
+    }
+    pre.config {
+      background: #0d1f2d;
+      color: #cdd5e0;
+      padding: 14px 16px;
+      border-radius: 6px;
+      font-family: 'IBM Plex Mono', ui-monospace, monospace;
+      font-size: 12px;
+      overflow-x: auto;
+      line-height: 1.55;
+      margin: 0;
+      max-height: 320px;
+    }
+    .footnote {
+      color: var(--dim);
+      font-size: 11px;
+      font-family: 'IBM Plex Mono', ui-monospace, monospace;
+      margin: 0;
+    }
+    .apply-hint {
+      background: #fef3c7;
+      border-left: 3px solid var(--normal);
+      padding: 10px 14px;
+      font-size: 12px;
+      color: var(--text);
+      border-radius: 4px;
+      margin-bottom: 10px;
+      line-height: 1.55;
+    }
+    .apply-hint code {
+      background: #fef9c3;
+      padding: 1px 5px;
+      border-radius: 3px;
+      font-family: 'IBM Plex Mono', ui-monospace, monospace;
+      font-size: 11px;
+    }
+    [data-mode="calm"] { background: var(--calm); }
+    [data-mode="normal"] { background: var(--normal); }
+    [data-mode="storm"] { background: var(--storm); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Crisis Phase Machine</h1>
+    <div class="subtitle">
+      Balance explainer · source: <strong>lib/turnEngine.ts</strong> (rollPhaseTransition, tickCrisisPhase)
+      + <strong>lib/crisisTriggers.ts</strong> (PHASE_MOD)
+    </div>
+
+    <div class="section">
+      <h2>① Transition matrix</h2>
+      <p class="note">
+        Once the duration timer for the current phase hits zero, the engine rolls a new phase using these
+        probabilities. Each row must sum to 1.0; sliders auto-normalise the other two when dragged.
+      </p>
+      <div id="matrix"></div>
+    </div>
+
+    <div class="section">
+      <h2>② Storm bias</h2>
+      <p class="note">
+        When adversaryTension or IW pressure exceeds the threshold, transition probabilities shift
+        toward storm by this amount (drawn proportionally from calm + normal).
+      </p>
+      <div class="row">
+        <label>Bias amount</label>
+        <input id="biasAmount" type="range" min="0" max="0.5" step="0.01" value="0.15">
+        <span class="val" data-val="biasAmount">0.15</span>
+      </div>
+      <div class="row">
+        <label>Threshold</label>
+        <input id="biasThreshold" type="range" min="0" max="100" step="1" value="70">
+        <span class="val" data-val="biasThreshold">70</span>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>③ Phase duration</h2>
+      <p class="note">
+        On each transition, the new phase is assigned a random duration in this range (inclusive).
+      </p>
+      <div class="row">
+        <label>Min (turns)</label>
+        <input id="durMin" type="range" min="1" max="10" step="1" value="3">
+        <span class="val" data-val="durMin">3</span>
+      </div>
+      <div class="row">
+        <label>Max (turns)</label>
+        <input id="durMax" type="range" min="1" max="15" step="1" value="6">
+        <span class="val" data-val="durMax">6</span>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>④ Crisis frequency multiplier (PHASE_MOD)</h2>
+      <p class="note">
+        Multiplies every passive crisis trigger probability while that phase is active.
+        1.0 = baseline. Composes with GLOBAL_TRIGGER_MOD (0.9) and per-category modifiers in
+        crisisTriggers.ts.
+      </p>
+      <div class="row">
+        <label>Calm</label>
+        <input id="modCalm" type="range" min="0" max="2" step="0.05" value="0.45">
+        <span class="val" data-val="modCalm">0.45</span>
+      </div>
+      <div class="row">
+        <label>Normal</label>
+        <input id="modNormal" type="range" min="0" max="2" step="0.05" value="1.0">
+        <span class="val" data-val="modNormal">1.00</span>
+      </div>
+      <div class="row">
+        <label>Storm</label>
+        <input id="modStorm" type="range" min="0" max="2" step="0.05" value="1.6">
+        <span class="val" data-val="modStorm">1.60</span>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>⑤ Simulation</h2>
+      <div class="toolbar">
+        <label class="toggle">
+          <input id="biasOn" type="checkbox"> Bias active (tension > threshold)
+        </label>
+        <button id="reroll" class="ghost">⟳ Re-roll timeline</button>
+      </div>
+      <p class="footnote" style="margin-bottom:4px;">200-turn timeline (one cell = one turn; hover for details):</p>
+      <div id="timeline" class="timeline"></div>
+      <div class="legend">
+        <span><span class="legend-chip" data-mode="calm"></span>Calm</span>
+        <span><span class="legend-chip" data-mode="normal"></span>Normal</span>
+        <span><span class="legend-chip" data-mode="storm"></span>Storm</span>
+      </div>
+
+      <p class="footnote" style="margin:18px 0 4px;">Steady-state distribution (5000-turn sample):</p>
+      <div class="bars" id="steady"></div>
+
+      <div class="scalar">
+        <span class="scalar-label">Expected relative crisis rate</span>
+        <span class="scalar-value" id="expectedRate">1.00</span>
+      </div>
+      <p class="footnote" style="margin-top:6px;">
+        Σ (PHASE_MOD × time%). 1.00 = today's normal-only baseline. Higher = stormier; lower = calmer.
+      </p>
+    </div>
+
+    <div class="section">
+      <h2>⑥ Copy config</h2>
+      <div class="apply-hint">
+        Paste the JSON below into Claude Code chat with a one-liner like
+        <code>apply this balance config</code>. Claude will edit the two source files
+        and run <code>tsc --noEmit</code> to verify.
+      </div>
+      <div class="toolbar">
+        <button id="copy">⧉ Copy to clipboard</button>
+        <span id="copyStatus" class="footnote" style="margin:0;"></span>
+      </div>
+      <pre class="config" id="configBlock"></pre>
+    </div>
+  </div>
+
+  <script>
+    // ─── Phase machine (mirror of lib/turnEngine.ts:44–104 as of 2026-05-25) ──
+    // Drift hazard: if you edit the engine logic, update this. Last verified:
+    //   PHASE_TRANSITIONS, rollPhaseTransition, tickCrisisPhase,
+    //   STORM_BIAS_AMOUNT, BIAS_TRIGGER_THRESHOLD, PHASE_DURATION_MIN/MAX,
+    //   PHASE_MOD (lib/crisisTriggers.ts:22).
+    'use strict';
+
+    const MODES = ['calm', 'normal', 'storm'];
+
+    // Defaults match the current source values.
+    const state = {
+      transitions: {
+        calm:   { calm: 0.50, normal: 0.40, storm: 0.10 },
+        normal: { calm: 0.25, normal: 0.55, storm: 0.20 },
+        storm:  { calm: 0.10, normal: 0.40, storm: 0.50 },
+      },
+      biasAmount: 0.15,
+      biasThreshold: 70,
+      durMin: 3,
+      durMax: 6,
+      phaseMod: { calm: 0.45, normal: 1.0, storm: 1.6 },
+      biasOn: false,
+    };
+
+    function rollPhaseTransition(from, biasStorm) {
+      const base = { ...state.transitions[from] };
+      if (biasStorm) {
+        const shift = state.biasAmount;
+        const giveup = base.calm + base.normal;
+        if (giveup > 0) {
+          const calmCut   = (base.calm   / giveup) * shift;
+          const normalCut = (base.normal / giveup) * shift;
+          base.calm   = Math.max(0, base.calm   - calmCut);
+          base.normal = Math.max(0, base.normal - normalCut);
+          base.storm  = Math.min(1, base.storm  + shift);
+        }
+      }
+      const r = Math.random();
+      let acc = 0;
+      for (const m of MODES) {
+        acc += base[m];
+        if (r <= acc) return m;
+      }
+      return 'normal';
+    }
+
+    function simulate(turns, biasOn) {
+      const out = new Array(turns);
+      let mode = 'normal';
+      const dmin = Math.min(state.durMin, state.durMax);
+      const dmax = Math.max(state.durMin, state.durMax);
+      const span = dmax - dmin + 1;
+      let timer = dmin + Math.floor(Math.random() * span);
+      for (let t = 0; t < turns; t++) {
+        out[t] = mode;
+        timer--;
+        if (timer <= 0) {
+          mode  = rollPhaseTransition(mode, biasOn);
+          timer = dmin + Math.floor(Math.random() * span);
+        }
+      }
+      return out;
+    }
+
+    function tally(seq) {
+      let c = 0, n = 0, s = 0;
+      for (let i = 0; i < seq.length; i++) {
+        const m = seq[i];
+        if      (m === 'calm')   c++;
+        else if (m === 'normal') n++;
+        else                     s++;
+      }
+      const total = seq.length;
+      return { calm: c / total, normal: n / total, storm: s / total };
+    }
+
+    // ─── Rendering ────────────────────────────────────────────────────────────
+
+    function renderMatrix() {
+      const m = document.getElementById('matrix');
+      m.innerHTML = '';
+      for (const from of MODES) {
+        const wrap = document.createElement('div');
+        wrap.className = 'matrix-row';
+
+        const head = document.createElement('div');
+        head.className = 'matrix-header';
+        head.innerHTML =
+          `From <span class="swatch" data-mode="${from}"></span> ${from}` +
+          `<span class="row-sum ok" id="sum-${from}">1.00</span>`;
+        wrap.appendChild(head);
+
+        for (const to of MODES) {
+          const r = document.createElement('div');
+          r.className = 'row';
+          r.innerHTML =
+            `<label>→ ${to}</label>` +
+            `<input type="range" min="0" max="1" step="0.01" value="${state.transitions[from][to]}" data-from="${from}" data-to="${to}">` +
+            `<span class="val">${state.transitions[from][to].toFixed(2)}</span>`;
+          wrap.appendChild(r);
+        }
+        m.appendChild(wrap);
+      }
+
+      m.querySelectorAll('input[type="range"]').forEach((el) => {
+        el.addEventListener('input', () => {
+          const from = el.dataset.from;
+          const to   = el.dataset.to;
+          const newVal = parseFloat(el.value);
+          normaliseRow(from, to, newVal);
+          renderMatrixValues();
+          scheduleSimulation();
+        });
+      });
+    }
+
+    function normaliseRow(from, changedTo, newVal) {
+      const row = state.transitions[from];
+      const others = MODES.filter((m) => m !== changedTo);
+      const remaining = Math.max(0, 1 - newVal);
+      const otherSum = row[others[0]] + row[others[1]];
+      row[changedTo] = newVal;
+      if (otherSum <= 0) {
+        row[others[0]] = remaining / 2;
+        row[others[1]] = remaining / 2;
+      } else {
+        row[others[0]] = Math.max(0, row[others[0]] * remaining / otherSum);
+        row[others[1]] = Math.max(0, row[others[1]] * remaining / otherSum);
+      }
+    }
+
+    function renderMatrixValues() {
+      for (const from of MODES) {
+        for (const to of MODES) {
+          const slider = document.querySelector(`input[data-from="${from}"][data-to="${to}"]`);
+          slider.value = state.transitions[from][to].toFixed(2);
+          slider.nextElementSibling.textContent = state.transitions[from][to].toFixed(2);
+        }
+        const sum = state.transitions[from].calm + state.transitions[from].normal + state.transitions[from].storm;
+        const sumEl = document.getElementById(`sum-${from}`);
+        sumEl.textContent = sum.toFixed(2);
+        sumEl.className = 'row-sum ' + (Math.abs(sum - 1) < 0.01 ? 'ok' : 'bad');
+      }
+    }
+
+    function renderScalars() {
+      for (const id of ['biasAmount', 'biasThreshold', 'durMin', 'durMax', 'modCalm', 'modNormal', 'modStorm']) {
+        const el = document.getElementById(id);
+        const v  = document.querySelector(`[data-val="${id}"]`);
+        const isInt = (id === 'biasThreshold' || id === 'durMin' || id === 'durMax');
+        v.textContent = isInt ? String(parseInt(el.value, 10)) : parseFloat(el.value).toFixed(2);
+      }
+    }
+
+    function renderTimeline() {
+      const seq = simulate(200, state.biasOn);
+      const t = document.getElementById('timeline');
+      t.innerHTML = '';
+      const frag = document.createDocumentFragment();
+      for (let i = 0; i < seq.length; i++) {
+        const cell = document.createElement('div');
+        cell.className = 'timeline-cell';
+        cell.dataset.mode = seq[i];
+        cell.title = `Turn ${i + 1}: ${seq[i]}`;
+        frag.appendChild(cell);
+      }
+      t.appendChild(frag);
+    }
+
+    function renderSteadyState() {
+      const seq  = simulate(5000, state.biasOn);
+      const dist = tally(seq);
+      const s = document.getElementById('steady');
+      s.innerHTML = '';
+      const frag = document.createDocumentFragment();
+      for (const mode of MODES) {
+        const pct = dist[mode];
+        const row = document.createElement('div');
+        row.className = 'bar-row';
+        row.innerHTML =
+          `<label>${mode}</label>` +
+          `<div class="bar-track"><div class="bar-fill" data-mode="${mode}" style="width:${(pct * 100).toFixed(1)}%"></div></div>` +
+          `<span class="val">${(pct * 100).toFixed(1)}%</span>`;
+        frag.appendChild(row);
+      }
+      s.appendChild(frag);
+      const rate =
+        dist.calm   * state.phaseMod.calm +
+        dist.normal * state.phaseMod.normal +
+        dist.storm  * state.phaseMod.storm;
+      document.getElementById('expectedRate').textContent = rate.toFixed(2);
+    }
+
+    function renderConfig() {
+      // Round-trip clean: 3-decimal precision for floats, ints for thresholds/durations.
+      const cleanTransitions = {};
+      for (const from of MODES) {
+        cleanTransitions[from] = {};
+        for (const to of MODES) {
+          cleanTransitions[from][to] = parseFloat(state.transitions[from][to].toFixed(3));
+        }
+      }
+      const obj = {
+        "$schema": "secgen-balance@v1",
+        "_generated": "phase-machine.html",
+        "lib/turnEngine.ts": {
+          "PHASE_TRANSITIONS":      cleanTransitions,
+          "STORM_BIAS_AMOUNT":      parseFloat(state.biasAmount.toFixed(3)),
+          "BIAS_TRIGGER_THRESHOLD": Math.round(state.biasThreshold),
+          "PHASE_DURATION_MIN":     Math.round(state.durMin),
+          "PHASE_DURATION_MAX":     Math.round(state.durMax),
+        },
+        "lib/crisisTriggers.ts": {
+          "PHASE_MOD": {
+            calm:   parseFloat(state.phaseMod.calm.toFixed(3)),
+            normal: parseFloat(state.phaseMod.normal.toFixed(3)),
+            storm:  parseFloat(state.phaseMod.storm.toFixed(3)),
+          },
+        },
+      };
+      document.getElementById('configBlock').textContent = JSON.stringify(obj, null, 2);
+    }
+
+    // Debounce via requestAnimationFrame
+    let pending = false;
+    function scheduleSimulation() {
+      if (pending) return;
+      pending = true;
+      requestAnimationFrame(() => {
+        pending = false;
+        renderTimeline();
+        renderSteadyState();
+        renderConfig();
+      });
+    }
+
+    function wireScalar(id, key, isInt) {
+      const el = document.getElementById(id);
+      el.addEventListener('input', () => {
+        const v = isInt ? parseInt(el.value, 10) : parseFloat(el.value);
+        if (key.startsWith('phaseMod.')) state.phaseMod[key.split('.')[1]] = v;
+        else state[key] = v;
+        renderScalars();
+        scheduleSimulation();
+      });
+    }
+
+    function init() {
+      renderMatrix();
+      renderMatrixValues();
+      wireScalar('biasAmount',    'biasAmount',      false);
+      wireScalar('biasThreshold', 'biasThreshold',   true);
+      wireScalar('durMin',        'durMin',          true);
+      wireScalar('durMax',        'durMax',          true);
+      wireScalar('modCalm',       'phaseMod.calm',   false);
+      wireScalar('modNormal',     'phaseMod.normal', false);
+      wireScalar('modStorm',      'phaseMod.storm',  false);
+      renderScalars();
+
+      document.getElementById('biasOn').addEventListener('change', (e) => {
+        state.biasOn = e.target.checked;
+        scheduleSimulation();
+      });
+      document.getElementById('reroll').addEventListener('click', () => scheduleSimulation());
+
+      document.getElementById('copy').addEventListener('click', async () => {
+        const text = document.getElementById('configBlock').textContent;
+        try {
+          await navigator.clipboard.writeText(text);
+          const s = document.getElementById('copyStatus');
+          s.textContent = '✓ copied — paste back to Claude Code with "apply this balance config"';
+          setTimeout(() => { s.textContent = ''; }, 3500);
+        } catch (err) {
+          alert('Clipboard copy failed: ' + err.message + '\n\nSelect-all the text below and copy manually.');
+        }
+      });
+
+      renderTimeline();
+      renderSteadyState();
+      renderConfig();
+    }
+
+    init();
+  </script>
+</body>
+</html>

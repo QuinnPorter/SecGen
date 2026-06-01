@@ -47,6 +47,13 @@ const PHASE_TRANSITIONS: Record<CrisisPhaseMode, Record<CrisisPhaseMode, number>
   storm:  { calm: 0.10, normal: 0.40, storm: 0.50 },
 }
 
+// Tunable scalars — exposed by name so the public/explainers/phase-machine.html
+// balance explainer can round-trip them via a paste-back config.
+const STORM_BIAS_AMOUNT       = 0.15  // shift toward storm column when tension is elevated
+const BIAS_TRIGGER_THRESHOLD  = 70    // adversaryTension or IW pressure above this biases toward storm
+const PHASE_DURATION_MIN      = 3     // inclusive lower bound (turns) for a new phase
+const PHASE_DURATION_MAX      = 6     // inclusive upper bound (turns) for a new phase
+
 const PHASE_TRANSITION_TEXT: Record<CrisisPhaseMode, string> = {
   calm:   'Geopolitical tensions easing — analysts expect a calm period ahead.',
   normal: 'Pressure normalising — situation room returns to standard tempo.',
@@ -56,8 +63,8 @@ const PHASE_TRANSITION_TEXT: Record<CrisisPhaseMode, string> = {
 function rollPhaseTransition(from: CrisisPhaseMode, biasStorm: boolean): CrisisPhaseMode {
   const base = { ...PHASE_TRANSITIONS[from] }
   if (biasStorm) {
-    // Shift +0.15 toward storm, proportionally subtracted from calm & normal.
-    const shift = 0.15
+    // Shift toward storm, proportionally subtracted from calm & normal.
+    const shift = STORM_BIAS_AMOUNT
     const giveup = base.calm + base.normal
     if (giveup > 0) {
       const calmCut = (base.calm / giveup) * shift
@@ -83,9 +90,12 @@ function tickCrisisPhase(state: GameState): { phase: CrisisPhase; note: Notifica
     return { phase: { mode: prev.mode, turnsRemaining: tr }, note: null }
   }
   // Time to roll. Bias toward storm if tension or IW pressure is elevated.
-  const biasStorm = state.adversaryTension > 70 || (state.informationWarfare?.pressure ?? 0) > 70
+  const biasStorm =
+    state.adversaryTension > BIAS_TRIGGER_THRESHOLD ||
+    (state.informationWarfare?.pressure ?? 0) > BIAS_TRIGGER_THRESHOLD
   const nextMode  = rollPhaseTransition(prev.mode, biasStorm)
-  const duration  = 3 + Math.floor(Math.random() * 4) // 3–6 turns
+  const span      = PHASE_DURATION_MAX - PHASE_DURATION_MIN + 1
+  const duration  = PHASE_DURATION_MIN + Math.floor(Math.random() * span)
   const note: Notification | null = nextMode !== prev.mode
     ? {
         id: crypto.randomUUID(),
