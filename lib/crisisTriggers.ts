@@ -25,6 +25,11 @@ export const PHASE_MOD: Record<string, number> = {
   storm:  1.6,
 }
 
+// Cyber allocation at which hybrid-attack frequency is "neutral" (multiplier 1.0).
+// Below this, the multiplier rises above 1 (starving cyber invites attacks);
+// above it, investment suppresses frequency. Matches the default cyber slider.
+export const CYBER_NEUTRAL_ALLOC = 20
+
 function roll(probability: number): boolean {
   return Math.random() < probability
 }
@@ -68,7 +73,9 @@ export function checkForNewCrises(gameState: GameState): Crisis[] {
   // ── Per-category trigger modifiers ─────────────────────────────────────────
   // Each budget slider suppresses one or two crisis types. Multipliers compose
   // with GLOBAL_TRIGGER_MOD inside the existing roll() calls.
-  const cyberMod   = 1 - allocation.cyberDefence   / 200  // hybrid_attack (and adversary_reaction)
+  // Cyber pivots around a neutral allocation: starving it pushes the multiplier
+  // above 1 (more hybrid attacks), heavy investment pushes it well below 1.
+  const cyberMod   = 1 - (allocation.cyberDefence - CYBER_NEUTRAL_ALLOC) / 150  // hybrid_attack (and adversary_reaction)
   const commsMod   = 1 - allocation.communications / 250  // political_instability, withdrawal_threat, non_aligned_election
   const readyMod   = 1 - allocation.troopReadiness / 300  // foreign_threat
   const partnerMod = 1 - allocation.partnerAid     / 250  // budget_cut, energy_crisis

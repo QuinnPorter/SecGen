@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react'
 import { useGameStore } from '@/lib/gameState'
-import { ShieldCheck, Zap, AlertTriangle, Map, Globe, FileText, type LucideIcon } from 'lucide-react'
+import { ShieldCheck, Zap, AlertTriangle, Map, Globe, FileText, Crosshair, Users, Coins, TrendingUp, type LucideIcon } from 'lucide-react'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -11,6 +11,24 @@ const AUTO_DISMISS_MS = 4000
 // ── Quarter label ─────────────────────────────────────────────────────────────
 
 const QUARTER_LABEL: Record<number, string> = { 1: 'Q1', 2: 'Q2', 3: 'Q3', 4: 'Q4' }
+
+// ── Delta formatting ──────────────────────────────────────────────────────────
+
+const NEUTRAL = '#78716c'
+const GOOD = '#15803d'
+const BAD = '#dc2626'
+
+function fmtDelta(n: number): string {
+  if (Math.abs(n) < 0.05) return '0'
+  return `${n > 0 ? '+' : '−'}${Math.abs(n).toFixed(1)}`
+}
+
+// goodWhenPositive=false means a negative delta is the desirable direction.
+function deltaColor(n: number, goodWhenPositive: boolean): string {
+  if (Math.abs(n) < 0.05) return NEUTRAL
+  const good = goodWhenPositive ? n > 0 : n < 0
+  return good ? GOOD : BAD
+}
 
 // ── Row components ────────────────────────────────────────────────────────────
 
@@ -69,10 +87,29 @@ export default function TurnSummary() {
     delayedEffects, accessionChanges, alignmentChanges, upcomingCrises,
   } = data
 
+  // New budget-impact + PC-ledger fields (optional — default for older saves).
+  const threatDelta       = data.threatDelta ?? 0
+  const satisfactionDelta = data.satisfactionDelta ?? 0
+  const fiscalDelta       = data.fiscalDelta ?? 0
+  const accessionDelta    = data.accessionDelta ?? 0
+  const pcEarned = data.pcEarned ?? pcReplenished
+  const pcSpent  = data.pcSpent ?? 0
+  const pcNet    = data.pcNet ?? (pcEarned - pcSpent)
+
   const readinessDeltaColor =
     readinessDelta > 0 ? '#15803d' : readinessDelta < 0 ? '#dc2626' : '#78716c'
   const readinessDeltaStr =
     readinessDelta > 0 ? `+${readinessDelta}` : String(readinessDelta)
+
+  const netColor = pcNet > 0 ? GOOD : pcNet < 0 ? BAD : NEUTRAL
+  const netStr   = pcNet > 0 ? `+${pcNet}` : String(pcNet)
+
+  const hasBudgetImpact =
+    Math.abs(readinessDelta) >= 1 ||
+    Math.abs(threatDelta) >= 0.05 ||
+    Math.abs(satisfactionDelta) >= 0.05 ||
+    Math.abs(fiscalDelta) >= 0.05 ||
+    Math.abs(accessionDelta) >= 0.05
 
   return (
     <>
@@ -141,6 +178,13 @@ export default function TurnSummary() {
         {/* Body */}
         <div className="px-5 pb-4 pt-3 space-y-0.5">
 
+          {/* ── Budget impact this turn ── */}
+          {hasBudgetImpact && (
+            <p className="text-xs font-black uppercase tracking-widest pt-0.5 pb-1" style={{ color: '#a8a29e', letterSpacing: '0.18em' }}>
+              Budget impact this turn
+            </p>
+          )}
+
           {/* Readiness delta */}
           {Math.abs(readinessDelta) >= 1 && (
             <Row
@@ -152,14 +196,66 @@ export default function TurnSummary() {
             />
           )}
 
-          {/* PC replenished */}
-          <Row
-            Icon={Zap}
-            iconColor="#004990"
-            label="Political capital replenished"
-            value={`+${pcReplenished} PC`}
-            valueColor="#004990"
-          />
+          {/* Threat delta (cyber defence) */}
+          {Math.abs(threatDelta) >= 0.05 && (
+            <Row
+              Icon={Crosshair}
+              iconColor={deltaColor(threatDelta, false)}
+              label="Threat level (avg)"
+              value={fmtDelta(threatDelta)}
+              valueColor={deltaColor(threatDelta, false)}
+            />
+          )}
+
+          {/* Satisfaction delta (communications) */}
+          {Math.abs(satisfactionDelta) >= 0.05 && (
+            <Row
+              Icon={Users}
+              iconColor={deltaColor(satisfactionDelta, true)}
+              label="Alliance satisfaction (avg)"
+              value={fmtDelta(satisfactionDelta)}
+              valueColor={deltaColor(satisfactionDelta, true)}
+            />
+          )}
+
+          {/* Fiscal delta (partner aid) */}
+          {Math.abs(fiscalDelta) >= 0.05 && (
+            <Row
+              Icon={Coins}
+              iconColor={deltaColor(fiscalDelta, false)}
+              label="Fiscal pressure (avg)"
+              value={fmtDelta(fiscalDelta)}
+              valueColor={deltaColor(fiscalDelta, false)}
+            />
+          )}
+
+          {/* Accession delta (partner aid) */}
+          {Math.abs(accessionDelta) >= 0.05 && (
+            <Row
+              Icon={TrendingUp}
+              iconColor={deltaColor(accessionDelta, true)}
+              label="Candidate accession (total)"
+              value={fmtDelta(accessionDelta)}
+              valueColor={deltaColor(accessionDelta, true)}
+            />
+          )}
+
+          {/* ── Political capital ledger ── */}
+          <div className="flex items-center justify-between gap-3 py-1.5">
+            <div className="flex items-center gap-2 min-w-0">
+              <Zap size={13} strokeWidth={2} color="#004990" style={{ flexShrink: 0 }} />
+              <span className="text-xs truncate" style={{ color: '#57534e' }}>Political capital</span>
+            </div>
+            <span className="text-xs tabular-nums flex-shrink-0">
+              <span style={{ color: GOOD }}>+{pcEarned}</span>
+              {' '}
+              <span style={{ color: pcSpent > 0 ? BAD : '#a8a29e' }}>−{pcSpent}</span>
+              {' '}
+              <span style={{ color: '#a8a29e' }}>=</span>
+              {' '}
+              <span style={{ color: netColor, fontWeight: 700 }}>{netStr} PC</span>
+            </span>
+          </div>
 
           {/* Upcoming crises */}
           {upcomingCrises > 0 && (

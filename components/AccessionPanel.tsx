@@ -297,7 +297,9 @@ function ProcessCard({
         <div className="space-y-1">
           <button
             onClick={onAdvance}
-            disabled={advDisabled}
+            // PC-shortfall stays clickable so advanceAccession surfaces the toast;
+            // the score gate remains a hard block.
+            disabled={scoreGate}
             title={
               !canAfford  ? `Insufficient political capital — need ${PC_COST_ADVANCE_ACCESSION} PC` :
               scoreGate   ? `Score 80 required to advance (current: ${score})` :
@@ -360,7 +362,6 @@ function CountryRow({
       </div>
       <button
         onClick={onBeginDialogue}
-        disabled={!canAfford}
         title={canAfford ? `Begin Dialogue — costs ${PC_COST_DIALOGUE} PC` : `Insufficient political capital — need ${PC_COST_DIALOGUE} PC`}
         className="flex-shrink-0 rounded px-2.5 py-1.5 text-xs font-medium transition-colors"
         style={{

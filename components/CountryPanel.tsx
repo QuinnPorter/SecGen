@@ -409,7 +409,9 @@ export default function CountryPanel() {
                           ? finaliseAccession(selectedCountry!)
                           : advanceAccession(selectedCountry!)
                         }
-                        disabled={disabled}
+                        // PC-shortfall stays clickable so advanceAccession can surface
+                        // the "not enough capital" toast; genuine gates stay disabled.
+                        disabled={scoreGate || noVotes || (isFinalise && pc < PC_COST_ADVANCE_ACCESSION)}
                         title={btnTitle}
                         className="w-full rounded py-2 text-xs font-semibold"
                         style={{
@@ -458,7 +460,6 @@ export default function CountryPanel() {
 
                   <button
                     onClick={() => selectedCountry && initiateDialogue(selectedCountry)}
-                    disabled={pc < PC_COST_DIALOGUE}
                     title={pc < PC_COST_DIALOGUE ? `Insufficient political capital — need ${PC_COST_DIALOGUE} PC` : `Begin Dialogue — costs ${PC_COST_DIALOGUE} PC`}
                     className="w-full rounded py-2 text-xs font-semibold"
                     style={{
@@ -505,7 +506,6 @@ export default function CountryPanel() {
                   <div>
                     <button
                       onClick={() => selectedCountry && engageMember(selectedCountry)}
-                      disabled={pc < PC_COST_ENGAGE}
                       title={pc < PC_COST_ENGAGE ? `Insufficient political capital — need ${PC_COST_ENGAGE} PC` : `Engage Country — costs ${PC_COST_ENGAGE} PC, lasts 3 turns`}
                       className="w-full rounded-lg py-2 text-sm font-semibold transition-colors"
                       style={{

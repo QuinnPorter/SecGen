@@ -1,16 +1,17 @@
 import { create } from 'zustand'
 import countriesData from '../data/countries.json'
-import { applyPassiveChanges, handleEscalationSideEffects } from './turnEngine'
+import { applyPassiveChanges, handleEscalationSideEffects, rdMultiplier } from './turnEngine'
 import { simulateMemberVotes } from './voteSimulator'
 import { checkAdversaryReactions } from './adversaryReactions'
 import { checkVictoryConditions, type VictoryResult } from './victoryConditions'
-import { autosave } from './persistence'
+import { autosave, showToast } from './persistence'
 import { checkForScenarios, SCENARIOS } from './scenarios'
 import { hasTrait, type CountryTrait } from './countryTraits'
 import {
   PC_COST_ENGAGE,
   PC_COST_DIALOGUE,
   PC_COST_ADVANCE_ACCESSION,
+  PC_MAX,
   pcReplenishFor,
 } from './constants'
 export type { VictoryResult }
@@ -132,6 +133,16 @@ export interface TurnSummaryData {
   accessionChanges: Array<{ countryName: string; scoreDelta: number }>
   alignmentChanges: Array<{ countryName: string; from: string; to: string }>
   upcomingCrises: number
+  // ── Budget impact this turn (alliance-wide averages / totals) ──
+  // Optional so saves written before this field existed still load cleanly.
+  threatDelta?: number          // avg NATO threatLevel change (− is good)
+  satisfactionDelta?: number    // avg NATO allianceSatisfaction change
+  fiscalDelta?: number          // avg NATO fiscalPressure change (− is good)
+  accessionDelta?: number       // total candidate accession-score change
+  // ── Political-capital ledger ──
+  pcEarned?: number             // PC replenished this turn (gross)
+  pcSpent?: number              // PC spent this turn
+  pcNet?: number                // earned − spent
 }
 
 export interface PendingEffect {
@@ -273,6 +284,38 @@ function applyCrisisEffects(
   }
 
   return { countries, approvalRating, adversaryTension }
+}
+
+// Stats where a POSITIVE delta helps the alliance (gets amplified by R&D).
+const BENEFICIAL_WHEN_POSITIVE = new Set<string>([
+  'readiness', 'allianceSatisfaction', 'approvalRating', '_allMemberSatisfaction', 'gdpDefencePercent',
+])
+// Stats where a NEGATIVE delta helps the alliance (gets amplified by R&D).
+const BENEFICIAL_WHEN_NEGATIVE = new Set<string>([
+  'threatLevel', 'fiscalPressure', 'adversaryTension',
+])
+
+// R&D is a force multiplier on crisis resolution: it amplifies the *beneficial*
+// components of a chosen option's effects, never the harmful ones. Sign-aware so a
+// "+readiness / −threat" option scales up while any collateral cost is left intact.
+// (applyCrisisEffects still clamps every result into 0–100.)
+function scaleBeneficialEffects(
+  effects: Partial<Record<string, number>>,
+  mult: number,
+): Partial<Record<string, number>> {
+  if (mult <= 1) return effects
+  const out: Partial<Record<string, number>> = {}
+  for (const [key, delta] of Object.entries(effects)) {
+    if (delta == null || delta === 0) {
+      out[key] = delta
+      continue
+    }
+    const helps =
+      (BENEFICIAL_WHEN_POSITIVE.has(key) && delta > 0) ||
+      (BENEFICIAL_WHEN_NEGATIVE.has(key) && delta < 0)
+    out[key] = helps ? delta * mult : delta
+  }
+  return out
 }
 
 // ── Budget helpers ─────────────────────────────────────────────────────────────
@@ -427,7 +470,10 @@ export const useGameStore = create<GameState>((set, get) => ({
   engageMember: (countryId) =>
     set((state) => {
       const { totalPoliticalCapital, spentThisTurn, memberEngagements } = state.budgetState
-      if (totalPoliticalCapital < PC_COST_ENGAGE) return state // insufficient capital
+      if (totalPoliticalCapital < PC_COST_ENGAGE) {
+        showToast('Not enough political capital', 'error')
+        return state // insufficient capital
+      }
       return {
         totalEngagements: state.totalEngagements + 1,
         budgetState: {
@@ -445,7 +491,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       budgetState: {
         ...state.budgetState,
         totalPoliticalCapital: Math.min(
-          100,
+          PC_MAX,
           state.budgetState.totalPoliticalCapital + pcReplenishFor(state.difficulty),
         ),
       },
@@ -457,7 +503,10 @@ export const useGameStore = create<GameState>((set, get) => ({
       if (!country) return state
       if (country.alignment !== 'candidate' && country.alignment !== 'neutral') return state
       if (state.accessionProcesses[countryId]) return state // already in process
-      if (state.budgetState.totalPoliticalCapital < PC_COST_DIALOGUE) return state
+      if (state.budgetState.totalPoliticalCapital < PC_COST_DIALOGUE) {
+        showToast('Not enough political capital', 'error')
+        return state
+      }
       const process: AccessionProcess = {
         countryId,
         stage: 'dialogue',
@@ -486,7 +535,10 @@ export const useGameStore = create<GameState>((set, get) => ({
     set((state) => {
       const process = state.accessionProcesses[countryId]
       if (!process) return state
-      if (state.budgetState.totalPoliticalCapital < PC_COST_ADVANCE_ACCESSION) return state
+      if (state.budgetState.totalPoliticalCapital < PC_COST_ADVANCE_ACCESSION) {
+        showToast('Not enough political capital', 'error')
+        return state
+      }
 
       const { stage, score } = process
 
@@ -598,11 +650,20 @@ export const useGameStore = create<GameState>((set, get) => ({
       if (!crisis || crisis.status !== 'active') return state
       const option = crisis.options.find((o) => o.id === optionId)
       if (!option) return state
-      if (state.budgetState.totalPoliticalCapital < option.capitalCost) return state
+      if (state.budgetState.totalPoliticalCapital < option.capitalCost) {
+        showToast('Not enough political capital', 'error')
+        return state
+      }
+
+      // R&D force-multiplies the beneficial effects of this option. Lock the
+      // multiplier in at decision time so it applies consistently to both the
+      // immediate effects and the delayed consequence queued below.
+      const rdMult = rdMultiplier(state.budgetState.allocation.RAndD)
+      const scaledEffects = scaleBeneficialEffects(option.effects, rdMult)
 
       // Apply immediate effects
       const { countries, approvalRating, adversaryTension } = applyCrisisEffects(
-        option.effects,
+        scaledEffects,
         crisis.affectedCountryId,
         { countries: state.countries, approvalRating: state.approvalRating, adversaryTension: state.adversaryTension },
       )
@@ -617,13 +678,14 @@ export const useGameStore = create<GameState>((set, get) => ({
       }
       const crises = state.crises.filter((c) => c.id !== crisisId)
 
-      // Queue delayed effects — fire 3 turns after resolution
+      // Queue delayed effects — fire 3 turns after resolution. Store the
+      // R&D-scaled effects so the delayed payoff reflects the same investment.
       const pendingEffect: PendingEffect = {
         id: crypto.randomUUID(),
         crisisId,
         turnsRemaining: 3,
         affectedCountryId: crisis.affectedCountryId,
-        effects: option.effects,
+        effects: scaledEffects,
         flavourText: option.consequences.delayed,
         applied: false,
       }
@@ -774,9 +836,10 @@ export const useGameStore = create<GameState>((set, get) => ({
         if (turns - 1 > 0) nextEngagements[id] = turns - 1
       }
       const pcPerTurn = pcReplenishFor(state.difficulty)
+      const pcSpentThisTurn = prevBudget.spentThisTurn
       const nextBudget: BudgetState = {
         ...prevBudget,
-        totalPoliticalCapital: Math.min(100, prevBudget.totalPoliticalCapital + pcPerTurn),
+        totalPoliticalCapital: Math.min(PC_MAX, prevBudget.totalPoliticalCapital + pcPerTurn),
         spentThisTurn: 0,
         memberEngagements: nextEngagements,
       }
@@ -928,6 +991,25 @@ export const useGameStore = create<GameState>((set, get) => ({
         : 0
       const readinessDelta = postReadiness - preReadiness
 
+      // ── Budget impact deltas (alliance-wide averages, pre → post) ──
+      const avgOf = (members: Country[], key: keyof Country): number =>
+        members.length > 0
+          ? members.reduce((sum, c) => sum + (c[key] as number), 0) / members.length
+          : 0
+      const round1 = (n: number): number => Math.round(n * 10) / 10
+      const threatDelta       = round1(avgOf(natoMembersPost, 'threatLevel') - avgOf(preNatoMembers, 'threatLevel'))
+      const satisfactionDelta = round1(avgOf(natoMembersPost, 'allianceSatisfaction') - avgOf(preNatoMembers, 'allianceSatisfaction'))
+      const fiscalDelta       = round1(avgOf(natoMembersPost, 'fiscalPressure') - avgOf(preNatoMembers, 'fiscalPressure'))
+
+      // Total candidate accession-score movement this turn (partnerAid-driven).
+      const preCandidates = Object.values(state.countries).filter((c) => c.alignment === 'candidate')
+      const accessionDelta = round1(
+        preCandidates.reduce(
+          (sum, c) => sum + ((workingCountries[c.id]?.accessionScore ?? 0) - (c.accessionScore ?? 0)),
+          0,
+        ),
+      )
+
       const summaryAccessionChanges: Array<{ countryName: string; scoreDelta: number }> = []
       for (const [id, nextProc] of Object.entries(nextAccession)) {
         const prevProc = state.accessionProcesses[id]
@@ -957,6 +1039,11 @@ export const useGameStore = create<GameState>((set, get) => ({
       const upcomingCrisesCount = finalCrises.filter((c) => c.status === 'pending').length
       const hasSummaryContent =
         Math.abs(readinessDelta) >= 1 ||
+        Math.abs(threatDelta) >= 0.1 ||
+        Math.abs(satisfactionDelta) >= 0.1 ||
+        Math.abs(fiscalDelta) >= 0.1 ||
+        Math.abs(accessionDelta) >= 0.1 ||
+        pcSpentThisTurn > 0 ||
         firedDelayedEffects.length > 0 ||
         summaryAccessionChanges.length > 0 ||
         summaryAlignmentChanges.length > 0 ||
@@ -971,6 +1058,13 @@ export const useGameStore = create<GameState>((set, get) => ({
         accessionChanges: summaryAccessionChanges,
         alignmentChanges: summaryAlignmentChanges,
         upcomingCrises: upcomingCrisesCount,
+        threatDelta,
+        satisfactionDelta,
+        fiscalDelta,
+        accessionDelta,
+        pcEarned: pcPerTurn,
+        pcSpent: pcSpentThisTurn,
+        pcNet: pcPerTurn - pcSpentThisTurn,
       }
 
       const gameOutcome = checkVictoryConditions({
@@ -1026,7 +1120,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         lowApprovalTurns:       nextLowApprovalTurns,
         withdrawnMembers:       nextWithdrawnMembers,
         gameOutcome,
-        totalPCSpent:           state.totalPCSpent + prevBudget.spentThisTurn,
+        totalPCSpent:           state.totalPCSpent + pcSpentThisTurn,
         turnsWithHighReadiness: state.turnsWithHighReadiness + (postReadiness > 70 ? 1 : 0),
         activeScenarios:        nextActiveScenarios,
         triggeredScenarios:     nextTriggeredScenarios,

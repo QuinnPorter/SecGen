@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useGameStore, selectAllianceReadiness, type BudgetAllocation, type NotificationType, type Crisis } from '@/lib/gameState'
+import { PC_MAX } from '@/lib/constants'
 import { AlertTriangle, Lightbulb, Circle, ChevronUp, ChevronDown } from 'lucide-react'
 import BudgetPanel from './BudgetPanel'
 import AccessionPanel from './AccessionPanel'
@@ -262,7 +263,7 @@ export default function Sidebar() {
               style={{ color: pc < 30 ? '#dc2626' : '#b45309' }}
             >
               <Lightbulb size={12} strokeWidth={2} />
-              {pc} / 100
+              {pc} / {PC_MAX}
             </span>
           </div>
 

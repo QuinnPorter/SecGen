@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { useGameStore, type BudgetAllocation } from '@/lib/gameState'
-import { PC_COST_ENGAGE, pcReplenishFor } from '@/lib/constants'
+import { PC_COST_ENGAGE, PC_MAX, pcReplenishFor, BUDGET_TUNABLES as T } from '@/lib/constants'
 import {
   computeReadinessDelta,
   computeSatisfactionDelta,
@@ -126,6 +126,9 @@ export default function BudgetPanel({ isOpen, onClose }: Props) {
     const avgReadiness    = readinessDeltas.length
       ? readinessDeltas.reduce((s, x) => s + x, 0) / readinessDeltas.length
       : 0
+    const avgReadinessNow = nato.length
+      ? nato.reduce((s, c) => s + c.readiness, 0) / nato.length
+      : 0
 
     const threatDeltas  = nato.map((c) => computeThreatDelta(c, draft))
     const avgThreat     = threatDeltas.length
@@ -139,7 +142,7 @@ export default function BudgetPanel({ isOpen, onClose }: Props) {
           0,
         ) / engaged.length
       : 0
-    const nonEngagedCap = 0.5 + draft.communications / 80
+    const nonEngagedCap = 0.5 + draft.communications / T.commsBaselineDivisor
 
     return {
       natoCount:       nato.length,
@@ -147,12 +150,13 @@ export default function BudgetPanel({ isOpen, onClose }: Props) {
       stretchedCount:  stretched.length,
       engagedCount:    engaged.length,
       avgReadiness,
+      avgReadinessNow,
       avgThreat,
       totalThreat,
       engagedSat,
       nonEngagedCap,
-      fiscalReduction: draft.partnerAid / 60,
-      accessionGain:   draft.partnerAid / 100,
+      fiscalReduction: draft.partnerAid / T.partnerAidFiscalDivisor,
+      accessionGain:   draft.partnerAid / T.partnerAidAccessionDivisor,
     }
   }, [draft, countries, memberEngagements, turn])
 
@@ -172,19 +176,31 @@ export default function BudgetPanel({ isOpen, onClose }: Props) {
     let text: string
     let warning = false
     switch (key) {
-      case 'troopReadiness':
-        if (v < 20) {
-          text = `Below threshold — readiness decays 2 pts/turn`
+      case 'troopReadiness': {
+        // Goal-tied: 75 is the win line, 20 the loss line. Frame the trajectory.
+        const now = Math.round(projection.avgReadinessNow)
+        if (v < T.readinessStarveThreshold) {
+          text = `Starved — readiness bleeds ${T.readinessStarvePenalty}/turn toward the 20 loss line (now ${now})`
           warning = true
+        } else if (v < T.readinessLeanThreshold) {
+          text = `Lean — ${fmtSigned(projection.avgReadiness)}/turn (damped); now ${now}, win line 75`
         } else {
-          text = `${fmtSigned(projection.avgReadiness)} avg readiness/turn across ${projection.natoCount} members`
+          text = `${fmtSigned(projection.avgReadiness)} avg readiness/turn · now ${now} → 75 win line`
         }
         break
-      case 'RAndD':
-        text = `×${rdMultiplier(v).toFixed(2)} crisis resolution multiplier`
+      }
+      case 'RAndD': {
+        const m = rdMultiplier(v)
+        text = `Current crises resolve ×${m.toFixed(2)} stronger (R&D force multiplier)`
         break
+      }
       case 'cyberDefence':
-        text = `${fmtSigned(projection.avgThreat)} threat/turn per member · ${fmtSigned(projection.totalThreat, 0)} total/turn`
+        if (v < T.cyberCreepThreshold) {
+          text = `Starved — threat creeps UP and hybrid attacks grow more frequent`
+          warning = true
+        } else {
+          text = `${fmtSigned(projection.avgThreat)} threat/turn per member · ${fmtSigned(projection.totalThreat, 0)} total/turn`
+        }
         break
       case 'partnerAid':
         text = projection.stretchedCount > 0
@@ -192,9 +208,14 @@ export default function BudgetPanel({ isOpen, onClose }: Props) {
           : `+${projection.accessionGain.toFixed(2)} accession score/turn for ${projection.candidatesCount} candidates`
         break
       case 'communications':
-        text = projection.engagedCount > 0
-          ? `${fmtSigned(projection.engagedSat)} satisfaction/turn on ${projection.engagedCount} engaged · ±${projection.nonEngagedCap.toFixed(2)} baseline drift cap on others`
-          : `±${projection.nonEngagedCap.toFixed(2)} satisfaction baseline drift cap (no engaged members)`
+        if (v < T.commsDecayThreshold) {
+          text = `Starved — satisfaction decays alliance-wide, feeding domestic crises`
+          warning = true
+        } else {
+          text = projection.engagedCount > 0
+            ? `${fmtSigned(projection.engagedSat)} satisfaction/turn on ${projection.engagedCount} engaged · ±${projection.nonEngagedCap.toFixed(2)} baseline drift cap on others`
+            : `±${projection.nonEngagedCap.toFixed(2)} satisfaction baseline drift cap (no engaged members)`
+        }
         break
       default:
         text = ''
@@ -278,19 +299,19 @@ export default function BudgetPanel({ isOpen, onClose }: Props) {
               <span
                 className="text-xs font-bold tabular-nums"
                 style={{ color: pc < 30 ? '#dc2626' : '#b45309' }}
-                title={`Replenishes ${pcPerTurn} per turn. Used to engage member states.`}
+                title={`Replenishes ${pcPerTurn} per turn, up to a ${PC_MAX} cap. Bank it for costly crisis decisions.`}
               >
-                {pc} / 100
+                {pc} / {PC_MAX}
               </span>
             </div>
             <div className="h-2 rounded-full" style={{ background: '#e7e5e0' }}>
               <div
                 className="h-full rounded-full transition-all duration-300"
-                style={{ width: `${pc}%`, background: pc < 30 ? '#dc2626' : '#b45309' }}
+                style={{ width: `${Math.min(100, (pc / PC_MAX) * 100)}%`, background: pc < 30 ? '#dc2626' : '#b45309' }}
               />
             </div>
             <p className="text-xs mt-1 tabular-nums" style={{ color: '#a8a29e' }}>
-              Replenishes {pcPerTurn}/turn · Costs {PC_COST_ENGAGE} PC to engage a member state
+              Replenishes {pcPerTurn}/turn (cap {PC_MAX}) · Costs {PC_COST_ENGAGE} PC to engage a member state
             </p>
           </div>
 

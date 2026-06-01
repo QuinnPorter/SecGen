@@ -211,7 +211,7 @@ function MemberCard({
       <div className="flex gap-2">
         <button
           onClick={onEngage}
-          disabled={!canEngage}
+          disabled={isEngaged}
           title={
             isEngaged ? 'Already engaged this turn' :
             pc < PC_COST_ENGAGE ? 'Insufficient political capital' :

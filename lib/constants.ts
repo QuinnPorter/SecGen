@@ -15,6 +15,43 @@ export function pcReplenishFor(difficulty: string | undefined): number {
   return PC_REPLENISH[difficulty ?? 'normal'] ?? PC_REPLENISH.normal
 }
 
+// Hard cap on banked political capital. Raised above the old 100 so that a
+// disciplined player can deliberately save for a costly crisis decision instead
+// of overflowing and wasting strong turns.
+export const PC_MAX = 150
+
+// ── Defence-budget effect coefficients ────────────────────────────────────────
+// Single source of truth for how a 0–100 allocation slider converts into a
+// per-turn mechanical effect. Tuned BOLD: each lever now spans collapse→thrive
+// across its range, so specialising into one category is powerful but genuinely
+// starves the others (the pool stays a hard 100-point zero-sum). Retune here.
+export const BUDGET_TUNABLES = {
+  // ── Troop Readiness → computeReadinessDelta ──
+  readinessBudgetDriftCap: 6,   // max ± readiness/turn from allocation drift (was 3)
+  readinessStarveThreshold: 20, // below this, readiness is actively bled
+  readinessStarvePenalty: 4,    // readiness pts/turn lost while starved (was 2)
+  readinessLeanThreshold: 35,   // 20–35 = "lean" band: real but damped gains
+  readinessLeanFactor: 0.5,     // upward drift multiplied by this in the lean band
+
+  // ── Cyber Defence → computeThreatDelta ──
+  cyberThreatDivisor: 25,       // threat reduction/turn = cyber / divisor (was 50)
+  cyberCreepThreshold: 10,      // below this, threat creeps UP instead of down
+  cyberCreepAmount: 0.6,        // max threat pts/turn gained when cyber is starved
+
+  // ── Communications → computeSatisfactionDelta ──
+  commsEngagedDivisor: 15,      // engaged-member satisfaction boost = comms / divisor (was 25)
+  commsBaselineDivisor: 40,     // baseline drift cap = 0.5 + comms / divisor (was 80)
+  commsDecayThreshold: 10,      // below this, satisfaction decay accelerates
+  commsDecayAmount: 1,          // max extra satisfaction pts/turn lost when comms starved
+
+  // ── Partner Aid (applied in turnEngine) ──
+  partnerAidAccessionDivisor: 50, // candidate accession score/turn = aid / divisor (was 100)
+  partnerAidFiscalDivisor: 35,    // fiscal relief/turn = aid / divisor (was 60)
+
+  // ── R&D (crisis-resolution force multiplier, applied in gameState) ──
+  rdMultiplierDivisor: 60,      // crisis effect multiplier = 1 + RAndD / divisor (was 100)
+} as const
+
 // Maps ISO 3166-1 numeric codes (as strings, with leading zeros) to our alpha-3 IDs.
 // These are the feature.id values in the world-atlas 110m TopoJSON.
 // Malta (470) and Kosovo (XKX) have no entry — Malta is sub-pixel at 110m,

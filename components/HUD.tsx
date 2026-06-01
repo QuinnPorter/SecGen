@@ -1,7 +1,8 @@
 'use client'
 
 import { useGameStore, type ViewMode } from '@/lib/gameState'
-import { HelpCircle, Settings, Circle, Newspaper } from 'lucide-react'
+import { pcReplenishFor, PC_MAX } from '@/lib/constants'
+import { HelpCircle, Settings, Circle, Newspaper, Zap } from 'lucide-react'
 
 const VIEW_MODES: { id: ViewMode; label: string }[] = [
   { id: 'world',     label: 'World' },
@@ -22,6 +23,10 @@ export default function HUD({ onOpenBrief, onOpenTutorial, onOpenNews, onOpenSet
   const article5Active = useGameStore((s) => s.article5Active)
   const viewMode       = useGameStore((s) => s.viewMode)
   const setViewMode    = useGameStore((s) => s.setViewMode)
+  const pc             = useGameStore((s) => s.budgetState.totalPoliticalCapital)
+  const difficulty     = useGameStore((s) => s.difficulty)
+  const pcPerTurn      = pcReplenishFor(difficulty)
+  const pcColor        = pc < 30 ? '#dc2626' : pc >= 100 ? '#15803d' : '#b45309'
 
   const activeCrisesList = crises.filter((c) => c.status === 'active')
   const activeCrises     = activeCrisesList.length
@@ -82,6 +87,17 @@ export default function HUD({ onOpenBrief, onOpenTutorial, onOpenNews, onOpenSet
 
       {/* Right cluster */}
       <div className="flex items-center gap-4">
+        {/* Political capital pill — always visible */}
+        <span
+          className="flex items-center gap-1.5 rounded-full px-2.5 py-1 tabular-nums"
+          style={{ background: '#fafaf9', border: `1px solid ${pcColor}33` }}
+          title={`Political capital: ${pc} / ${PC_MAX}\nReplenishes ${pcPerTurn}/turn. Spent on engagement, dialogue, accession, and crisis decisions.`}
+        >
+          <Zap size={12} strokeWidth={2.25} color={pcColor} />
+          <span className="text-xs font-bold" style={{ color: pcColor }}>{pc}</span>
+          <span className="text-xs font-medium" style={{ color: '#a8a29e' }}>/ {PC_MAX} PC</span>
+        </span>
+
         {/* Article 5 badge */}
         {article5Active && (
           <button

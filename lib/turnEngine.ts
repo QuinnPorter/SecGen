@@ -10,6 +10,7 @@ import {
   type PendingEffect,
 } from './gameState'
 import { computeReadinessDelta, computeSatisfactionDelta, computeThreatDelta } from './budgetHelpers'
+import { BUDGET_TUNABLES as T } from './constants'
 import { computeAccessionScore } from './accessionHelpers'
 import { simulateMemberVotes } from './voteSimulator'
 import { checkAdversaryReactions } from './adversaryReactions'
@@ -23,10 +24,12 @@ function clamp(v: number, min: number, max: number): number {
 }
 
 // RAndD produces a multiplier used in Phase 4 crisis resolution.
-// It is computed on demand rather than stored: 1 + allocation.RAndD / 100
-// (e.g. allocation 50 → 1.5×, allocation 100 → 2×)
+// It is computed on demand rather than stored: 1 + allocation.RAndD / divisor
+// (e.g. divisor 60 → allocation 30 = 1.5×, allocation 60 = 2×, allocation 100 ≈ 2.67×).
+// A real "force-multiplier" build: pour into R&D and every crisis you resolve
+// lands its beneficial effects far harder.
 export function rdMultiplier(rAndDAllocation: number): number {
-  return 1 + rAndDAllocation / 100
+  return 1 + rAndDAllocation / T.rdMultiplierDivisor
 }
 
 // Difficulty helpers (local copy — no import needed)
@@ -136,7 +139,7 @@ export function applyPassiveChanges(
 
     // --- Candidates: partnerAid grows accession score ---
     if (c.alignment === 'candidate') {
-      const gain = allocation.partnerAid / 100
+      const gain = allocation.partnerAid / T.partnerAidAccessionDivisor
       if (gain > 0) {
         const current = c.accessionScore ?? 0
         updatedCountries[id] = { ...c, accessionScore: clamp(current + gain, 0, 100) }
@@ -156,7 +159,7 @@ export function applyPassiveChanges(
 
     // partnerAid: eases fiscal pressure for stretched members
     if (c.fiscalPressure > 40) {
-      const fiscalReduction = allocation.partnerAid / 60
+      const fiscalReduction = allocation.partnerAid / T.partnerAidFiscalDivisor
       const fiscalBefore = next.fiscalPressure ?? c.fiscalPressure
       next.fiscalPressure = clamp(fiscalBefore - fiscalReduction, 0, 100)
     }

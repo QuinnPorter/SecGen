@@ -3,7 +3,22 @@
 import { useMemo, useState } from 'react'
 import { useGameStore, type Country, type Crisis, type CrisisOption } from '@/lib/gameState'
 import { SCENARIOS, type ScenarioDefinition } from '@/lib/scenarios'
-import { AlertTriangle, Check, RotateCcw } from 'lucide-react'
+import { rdMultiplier } from '@/lib/turnEngine'
+import { showToast } from '@/lib/persistence'
+import { AlertTriangle, Check, RotateCcw, FlaskConical } from 'lucide-react'
+
+// Mirrors the sign-aware R&D scaling in gameState.scaleBeneficialEffects so the
+// badge only appears on options R&D would actually amplify.
+const RD_GOOD_POSITIVE = new Set(['readiness', 'allianceSatisfaction', 'approvalRating', '_allMemberSatisfaction', 'gdpDefencePercent'])
+const RD_GOOD_NEGATIVE = new Set(['threatLevel', 'fiscalPressure', 'adversaryTension'])
+
+function optionBenefitsFromRD(effects: Partial<Record<string, number>>): boolean {
+  return Object.entries(effects).some(
+    ([k, d]) =>
+      d != null && d !== 0 &&
+      ((RD_GOOD_POSITIVE.has(k) && d > 0) || (RD_GOOD_NEGATIVE.has(k) && d < 0)),
+  )
+}
 
 // ── Flag emoji (alpha-3 → Regional Indicator pair) ────────────────────────────
 
@@ -40,18 +55,25 @@ function OptionBtn({
   option,
   selected,
   canAfford,
+  rdMult,
   onClick,
 }: {
   option: CrisisOption
   selected: boolean
   canAfford: boolean
+  rdMult: number
   onClick: () => void
 }) {
   const disabled = !canAfford && !selected
+  const showRdBadge = rdMult > 1.01 && optionBenefitsFromRD(option.effects)
 
   return (
     <button
-      onClick={() => !disabled && onClick()}
+      onClick={() =>
+        disabled
+          ? showToast('Not enough political capital', 'error')
+          : onClick()
+      }
       className="w-full text-left rounded-lg px-3 py-2.5"
       style={{
         background:  selected ? '#e0eaf5' : '#fafaf9',
@@ -78,6 +100,16 @@ function OptionBtn({
       <p className="text-xs leading-relaxed" style={{ color: selected ? '#003a78' : '#57534e' }}>
         {option.description}
       </p>
+      {showRdBadge && (
+        <span
+          className="inline-flex items-center gap-1 mt-1.5 px-1.5 py-0.5 rounded text-xs font-semibold"
+          style={{ background: '#f3effb', color: '#6d28d9', border: '1px solid #ddd2f5' }}
+          title="R&D investment amplifies this option's beneficial effects."
+        >
+          <FlaskConical size={10} strokeWidth={2.25} />
+          effects ×{rdMult.toFixed(2)} from R&D
+        </span>
+      )}
     </button>
   )
 }
@@ -88,6 +120,7 @@ function CrisisCard({
   crisis,
   countries,
   pc,
+  rdMult,
   chosenOptionId,
   deferred,
   onChoose,
@@ -97,6 +130,7 @@ function CrisisCard({
   crisis: Crisis
   countries: Record<string, Country>
   pc: number
+  rdMult: number
   chosenOptionId: string | null
   deferred: boolean
   onChoose: (optionId: string) => void
@@ -172,6 +206,7 @@ function CrisisCard({
             option={opt}
             selected={chosenOptionId === opt.id}
             canAfford={pc >= opt.capitalCost}
+            rdMult={rdMult}
             onClick={() => onChoose(opt.id)}
           />
         ))}
@@ -343,6 +378,8 @@ export default function IntelBrief({ isOpen, onClose }: Props) {
   const crises              = useGameStore((s) => s.crises)
   const countries           = useGameStore((s) => s.countries)
   const pc                  = useGameStore((s) => s.budgetState.totalPoliticalCapital)
+  const rAndD               = useGameStore((s) => s.budgetState.allocation.RAndD)
+  const rdMult              = rdMultiplier(rAndD)
   const quarter             = useGameStore((s) => s.quarter)
   const year                = useGameStore((s) => s.year)
   const resolveCrisis       = useGameStore((s) => s.resolveCrisis)
@@ -512,6 +549,7 @@ export default function IntelBrief({ isOpen, onClose }: Props) {
                   crisis={crisis}
                   countries={countries}
                   pc={pc}
+                  rdMult={rdMult}
                   chosenOptionId={decisions[crisis.id] ?? null}
                   deferred={deferred.has(crisis.id)}
                   onChoose={(optionId) => handleChoose(crisis.id, optionId)}
