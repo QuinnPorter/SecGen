@@ -1,7 +1,7 @@
 'use client'
 
 import { useGameStore, type ViewMode } from '@/lib/gameState'
-import { HelpCircle, Settings, Circle } from 'lucide-react'
+import { HelpCircle, Settings, Circle, Newspaper } from 'lucide-react'
 
 const VIEW_MODES: { id: ViewMode; label: string }[] = [
   { id: 'world',     label: 'World' },
@@ -13,9 +13,11 @@ const SEV_ORDER: Record<string, number> = { low: 1, medium: 2, high: 3, critical
 interface Props {
   onOpenBrief?: () => void
   onOpenTutorial?: () => void
+  onOpenNews?: () => void
+  onOpenSettings?: () => void
 }
 
-export default function HUD({ onOpenBrief, onOpenTutorial }: Props) {
+export default function HUD({ onOpenBrief, onOpenTutorial, onOpenNews, onOpenSettings }: Props) {
   const crises         = useGameStore((s) => s.crises)
   const article5Active = useGameStore((s) => s.article5Active)
   const viewMode       = useGameStore((s) => s.viewMode)
@@ -119,6 +121,19 @@ export default function HUD({ onOpenBrief, onOpenTutorial }: Props) {
           )}
         </button>
 
+        {/* News — opens NewsPanel (the wire of recent dispatches) */}
+        <button
+          onClick={onOpenNews}
+          className="rounded flex items-center justify-center transition-colors"
+          style={{ width: 28, height: 28, background: 'transparent', color: '#78716c' }}
+          onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.color = '#1c1917')}
+          onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.color = '#78716c')}
+          aria-label="News"
+          title="News"
+        >
+          <Newspaper size={16} strokeWidth={1.75} />
+        </button>
+
         {/* Tutorial — opens TutorialModal */}
         <button
           onClick={onOpenTutorial}
@@ -132,14 +147,15 @@ export default function HUD({ onOpenBrief, onOpenTutorial }: Props) {
           <HelpCircle size={16} strokeWidth={1.75} />
         </button>
 
-        {/* Settings gear — non-functional */}
+        {/* Settings gear — opens SettingsPanel (save / load) */}
         <button
+          onClick={onOpenSettings}
           className="rounded flex items-center justify-center transition-colors"
           style={{ width: 28, height: 28, background: 'transparent', color: '#78716c' }}
           onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.color = '#1c1917')}
           onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.color = '#78716c')}
           aria-label="Settings"
-          title="Settings (coming soon)"
+          title="Settings"
         >
           <Settings size={16} strokeWidth={1.75} />
         </button>

@@ -13,6 +13,8 @@ import NewGameModal, { type NewGameConfig } from './NewGameModal'
 import SaveBrowser from './SaveBrowser'
 import TurnSummary from './TurnSummary'
 import TutorialModal from './TutorialModal'
+import NewsPanel from './NewsPanel'
+import SettingsPanel from './SettingsPanel'
 
 // ── Load-save modal ───────────────────────────────────────────────────────────
 
@@ -154,6 +156,8 @@ export default function Game() {
   const [saveBrowserOpen, setSaveBrowserOpen] = useState(false)
   const [briefPending, setBriefPending] = useState(false)
   const [tutorialOpen, setTutorialOpen] = useState(false)
+  const [newsOpen, setNewsOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
   const turn              = useGameStore((s) => s.turn)
   const gameOutcome       = useGameStore((s) => s.gameOutcome)
   const showTurnSummary   = useGameStore((s) => s.showTurnSummary)
@@ -204,7 +208,7 @@ export default function Game() {
       const tag = (e.target as Element).tagName
       if (['INPUT', 'TEXTAREA', 'SELECT', 'BUTTON'].includes(tag)) return
 
-      const anyOverlay = briefOpen || showTurnSummary || showNewGame || !!loadMeta_ || saveBrowserOpen
+      const anyOverlay = briefOpen || showTurnSummary || showNewGame || !!loadMeta_ || saveBrowserOpen || newsOpen || settingsOpen
 
       if (e.code === 'Space' || e.code === 'Enter') {
         if (anyOverlay || gameOutcome !== null) return
@@ -214,6 +218,8 @@ export default function Game() {
       }
 
       if (e.key === 'Escape') {
+        if (settingsOpen)     { setSettingsOpen(false); return }
+        if (newsOpen)         { setNewsOpen(false);     return }
         if (briefOpen)        { setBriefOpen(false);    return }
         if (showTurnSummary)  { dismissTurnSummary();    return }
         return
@@ -231,7 +237,7 @@ export default function Game() {
 
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [briefOpen, showTurnSummary, showNewGame, loadMeta_, saveBrowserOpen, gameOutcome, advanceTurn, dismissTurnSummary])
+  }, [briefOpen, showTurnSummary, showNewGame, loadMeta_, saveBrowserOpen, newsOpen, settingsOpen, gameOutcome, advanceTurn, dismissTurnSummary])
 
   // When TurnSummary is dismissed, open IntelBrief if one was pending
   useEffect(() => {
@@ -273,6 +279,8 @@ export default function Game() {
       <HUD
         onOpenBrief={() => setBriefOpen(true)}
         onOpenTutorial={() => setTutorialOpen(true)}
+        onOpenNews={() => setNewsOpen(true)}
+        onOpenSettings={() => setSettingsOpen(true)}
       />
       <div style={{ display: 'flex', flex: 1, position: 'relative', overflow: 'hidden' }}>
         <Sidebar />
@@ -307,6 +315,8 @@ export default function Game() {
         />
       )}
       <TutorialModal open={tutorialOpen} onClose={() => setTutorialOpen(false)} />
+      <NewsPanel isOpen={newsOpen} onClose={() => setNewsOpen(false)} />
+      <SettingsPanel isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </div>
   )
 }

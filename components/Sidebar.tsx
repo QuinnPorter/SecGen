@@ -2,12 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import { useGameStore, selectAllianceReadiness, type BudgetAllocation, type NotificationType, type Crisis } from '@/lib/gameState'
-import { saveToSlot, latestSave, showToast, type SaveSlotMeta } from '@/lib/persistence'
 import { AlertTriangle, Lightbulb, Circle, ChevronUp, ChevronDown } from 'lucide-react'
 import BudgetPanel from './BudgetPanel'
 import AccessionPanel from './AccessionPanel'
 import AttentionPanel from './AttentionPanel'
-import SaveBrowser from './SaveBrowser'
 
 const BUDGET_DOTS: Array<{ key: keyof BudgetAllocation; label: string; color: string }> = [
   { key: 'troopReadiness', label: 'Troops', color: '#004990' },
@@ -79,29 +77,14 @@ function CrisisLogDetail({ crisis }: { crisis: Crisis }) {
   )
 }
 
-function lastSavedText(savedTurn: number, currentTurn: number): string {
-  const delta = currentTurn - savedTurn
-  if (delta <= 0) return 'Last saved: this turn'
-  if (delta === 1) return 'Last saved: 1 turn ago'
-  return `Last saved: ${delta} turns ago`
-}
-
 export default function Sidebar() {
   const [budgetOpen, setBudgetOpen]         = useState(false)
   const [attentionOpen, setAttentionOpen]   = useState(false)
   const [expansionOpen, setExpansionOpen]   = useState(false)
   const [crisisLogOpen, setCrisisLogOpen]   = useState(false)
   const [logDetailId, setLogDetailId]       = useState<string | null>(null)
-  const [saveBrowserOpen, setSaveBrowserOpen] = useState(false)
-  // Start as null on both server and client so SSR markup matches first client
-  // render. The real value is loaded in the effect below after hydration.
-  const [savedMeta, setSavedMeta]           = useState<SaveSlotMeta | null>(null)
 
   const turn           = useGameStore((s) => s.turn)
-
-  // Re-read meta from localStorage on mount and after every turn (autosave runs
-  // just before re-render). Running in an effect keeps SSR/CSR markup aligned.
-  useEffect(() => { setSavedMeta(latestSave()) }, [turn])
 
   // ── Panel keyboard shortcuts ───────────────────────────────────────────────
   // B → Budget, E → Expansion, A → Attention, Escape → close open panel
@@ -169,6 +152,22 @@ export default function Sidebar() {
         <div className="text-xs mt-1 tabular-nums" style={{ color: '#78716c' }}>
           Turn {turn}
         </div>
+        <button
+          onClick={advanceTurn}
+          className="w-full rounded-lg py-3 mt-4 font-semibold text-sm transition-colors"
+          style={{
+            background: '#004990',
+            color: '#fff',
+            boxShadow: '0 1px 2px rgba(0, 73, 144, 0.18), 0 2px 4px rgba(0, 73, 144, 0.12)',
+          }}
+          onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.background = '#003a78')}
+          onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.background = '#004990')}
+        >
+          End Turn
+        </button>
+        <p className="text-center text-xs mt-2 tabular-nums" style={{ color: '#a8a29e' }}>
+          Advancing to Q{nextQ} {nextYear}…
+        </p>
       </div>
 
       {/* Middle — alliance status */}
@@ -537,66 +536,6 @@ export default function Sidebar() {
         </div>
       </div>
 
-      {/* Bottom — end turn + save */}
-      <div className="p-6 flex-shrink-0 space-y-2" style={{ borderTop: '1px solid #e7e5e0' }}>
-        <button
-          onClick={advanceTurn}
-          className="w-full rounded-lg py-3 font-semibold text-sm transition-colors"
-          style={{
-            background: '#004990',
-            color: '#fff',
-            boxShadow: '0 1px 2px rgba(0, 73, 144, 0.18), 0 2px 4px rgba(0, 73, 144, 0.12)',
-          }}
-          onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.background = '#003a78')}
-          onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.background = '#004990')}
-        >
-          End Turn
-        </button>
-        <p className="text-center text-xs tabular-nums" style={{ color: '#a8a29e' }}>
-          Advancing to Q{nextQ} {nextYear}…
-        </p>
-        <div className="flex gap-2">
-          <button
-            onClick={() => {
-              if (saveToSlot(useGameStore.getState())) showToast('Game saved')
-              setSavedMeta(latestSave())
-            }}
-            className="flex-1 rounded-lg py-2 text-xs font-medium transition-colors"
-            style={{ background: '#fafaf9', color: '#57534e', border: '1px solid #e7e5e0' }}
-            onMouseEnter={(e) => {
-              ;(e.currentTarget as HTMLButtonElement).style.color = '#004990'
-              ;(e.currentTarget as HTMLButtonElement).style.borderColor = '#004990'
-            }}
-            onMouseLeave={(e) => {
-              ;(e.currentTarget as HTMLButtonElement).style.color = '#57534e'
-              ;(e.currentTarget as HTMLButtonElement).style.borderColor = '#e7e5e0'
-            }}
-          >
-            Save
-          </button>
-          <button
-            onClick={() => setSaveBrowserOpen(true)}
-            className="flex-1 rounded-lg py-2 text-xs font-medium transition-colors"
-            style={{ background: '#fafaf9', color: '#57534e', border: '1px solid #e7e5e0' }}
-            onMouseEnter={(e) => {
-              ;(e.currentTarget as HTMLButtonElement).style.color = '#004990'
-              ;(e.currentTarget as HTMLButtonElement).style.borderColor = '#004990'
-            }}
-            onMouseLeave={(e) => {
-              ;(e.currentTarget as HTMLButtonElement).style.color = '#57534e'
-              ;(e.currentTarget as HTMLButtonElement).style.borderColor = '#e7e5e0'
-            }}
-          >
-            Saves…
-          </button>
-        </div>
-        {savedMeta && (
-          <p className="text-center text-xs tabular-nums" style={{ color: '#a8a29e' }}>
-            {lastSavedText(savedMeta.turn, turn)}
-          </p>
-        )}
-      </div>
-
       <BudgetPanel isOpen={budgetOpen} onClose={() => setBudgetOpen(false)} />
       <AccessionPanel isOpen={expansionOpen} onClose={() => setExpansionOpen(false)} />
       <AttentionPanel
@@ -604,13 +543,6 @@ export default function Sidebar() {
         onClose={() => setAttentionOpen(false)}
         onOpenBudget={() => setBudgetOpen(true)}
       />
-      {saveBrowserOpen && (
-        <SaveBrowser
-          confirmReplace
-          onClose={() => setSaveBrowserOpen(false)}
-          onLoaded={() => setSavedMeta(latestSave())}
-        />
-      )}
     </aside>
   )
 }
