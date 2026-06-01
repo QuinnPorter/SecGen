@@ -4,7 +4,7 @@ import { applyPassiveChanges, handleEscalationSideEffects } from './turnEngine'
 import { simulateMemberVotes } from './voteSimulator'
 import { checkAdversaryReactions } from './adversaryReactions'
 import { checkVictoryConditions, type VictoryResult } from './victoryConditions'
-import { saveGame } from './persistence'
+import { autosave } from './persistence'
 import { checkForScenarios, SCENARIOS } from './scenarios'
 import { hasTrait, type CountryTrait } from './countryTraits'
 import {
@@ -1036,7 +1036,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     })
     // Autosave at the end of every completed turn (skip if game already ended)
     const next = get()
-    if (next.gameOutcome === null) saveGame(next)
+    if (next.gameOutcome === null) autosave(next)
   },
   resetGame: () =>
     set({

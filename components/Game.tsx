@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useGameStore } from '@/lib/gameState'
-import { loadGame, loadMeta, type SaveMeta } from '@/lib/persistence'
+import { loadSlot, latestSave, type SaveSlotMeta } from '@/lib/persistence'
 import HUD from './HUD'
 import Sidebar from './Sidebar'
 import MapView from './MapView'
@@ -10,6 +10,7 @@ import CountryPanel from './CountryPanel'
 import IntelBrief from './IntelBrief'
 import EndGameScreen from './EndGameScreen'
 import NewGameModal, { type NewGameConfig } from './NewGameModal'
+import SaveBrowser from './SaveBrowser'
 import TurnSummary from './TurnSummary'
 import TutorialModal from './TutorialModal'
 
@@ -19,10 +20,12 @@ function LoadModal({
   meta,
   onContinue,
   onNewGame,
+  onLoadGame,
 }: {
-  meta: SaveMeta
+  meta: SaveSlotMeta
   onContinue: () => void
   onNewGame: () => void
+  onLoadGame: () => void
 }) {
   const QUARTER_LABELS = ['', 'Q1', 'Q2', 'Q3', 'Q4']
   return (
@@ -119,6 +122,23 @@ function LoadModal({
             Continue
           </button>
         </div>
+
+        {/* Load from a saved slot or a file */}
+        <button
+          onClick={onLoadGame}
+          className="w-full mt-3 rounded-lg py-2.5 text-sm font-medium transition-colors"
+          style={{ background: '#fafaf9', color: '#57534e', border: '1px solid #e7e5e0' }}
+          onMouseEnter={(e) => {
+            ;(e.currentTarget as HTMLButtonElement).style.color = '#004990'
+            ;(e.currentTarget as HTMLButtonElement).style.borderColor = '#004990'
+          }}
+          onMouseLeave={(e) => {
+            ;(e.currentTarget as HTMLButtonElement).style.color = '#57534e'
+            ;(e.currentTarget as HTMLButtonElement).style.borderColor = '#e7e5e0'
+          }}
+        >
+          Load Game
+        </button>
       </div>
     </div>
   )
@@ -129,8 +149,9 @@ function LoadModal({
 export default function Game() {
   const [briefOpen,    setBriefOpen]  = useState(false)
   const [reviewMode,   setReviewMode] = useState(false)
-  const [loadMeta_,    setLoadMeta]   = useState<SaveMeta | null>(null)
+  const [loadMeta_,    setLoadMeta]   = useState<SaveSlotMeta | null>(null)
   const [showNewGame,  setShowNewGame] = useState(false)
+  const [saveBrowserOpen, setSaveBrowserOpen] = useState(false)
   const [briefPending, setBriefPending] = useState(false)
   const [tutorialOpen, setTutorialOpen] = useState(false)
   const turn              = useGameStore((s) => s.turn)
@@ -139,9 +160,9 @@ export default function Game() {
   const advanceTurn       = useGameStore((s) => s.advanceTurn)
   const dismissTurnSummary = useGameStore((s) => s.dismissTurnSummary)
 
-  // On mount: check for an existing save and show the modal if found
+  // On mount: check for an existing save and show the start menu if one exists
   useEffect(() => {
-    const meta = loadMeta()
+    const meta = latestSave()
     if (meta) setLoadMeta(meta)
   }, [])
 
@@ -183,7 +204,7 @@ export default function Game() {
       const tag = (e.target as Element).tagName
       if (['INPUT', 'TEXTAREA', 'SELECT', 'BUTTON'].includes(tag)) return
 
-      const anyOverlay = briefOpen || showTurnSummary || showNewGame || !!loadMeta_
+      const anyOverlay = briefOpen || showTurnSummary || showNewGame || !!loadMeta_ || saveBrowserOpen
 
       if (e.code === 'Space' || e.code === 'Enter') {
         if (anyOverlay || gameOutcome !== null) return
@@ -210,7 +231,7 @@ export default function Game() {
 
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [briefOpen, showTurnSummary, showNewGame, loadMeta_, gameOutcome, advanceTurn, dismissTurnSummary])
+  }, [briefOpen, showTurnSummary, showNewGame, loadMeta_, saveBrowserOpen, gameOutcome, advanceTurn, dismissTurnSummary])
 
   // When TurnSummary is dismissed, open IntelBrief if one was pending
   useEffect(() => {
@@ -224,7 +245,7 @@ export default function Game() {
   }, [showTurnSummary, briefPending])
 
   function handleContinue() {
-    const saved = loadGame()
+    const saved = loadMeta_ ? loadSlot(loadMeta_.id) : null
     if (saved) useGameStore.setState(saved)
     setLoadMeta(null)
   }
@@ -273,10 +294,17 @@ export default function Game() {
           meta={loadMeta_}
           onContinue={handleContinue}
           onNewGame={handleNewGameFromLoad}
+          onLoadGame={() => setSaveBrowserOpen(true)}
         />
       )}
       {showNewGame && (
         <NewGameModal onStart={handleStart} />
+      )}
+      {saveBrowserOpen && (
+        <SaveBrowser
+          onClose={() => setSaveBrowserOpen(false)}
+          onLoaded={() => { setLoadMeta(null); setShowNewGame(false) }}
+        />
       )}
       <TutorialModal open={tutorialOpen} onClose={() => setTutorialOpen(false)} />
     </div>

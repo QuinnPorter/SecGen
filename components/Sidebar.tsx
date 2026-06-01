@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from 'react'
 import { useGameStore, selectAllianceReadiness, type BudgetAllocation, type NotificationType, type Crisis } from '@/lib/gameState'
-import { saveGame, loadMeta, type SaveMeta } from '@/lib/persistence'
+import { saveToSlot, latestSave, showToast, type SaveSlotMeta } from '@/lib/persistence'
 import { AlertTriangle, Lightbulb, Circle, ChevronUp, ChevronDown } from 'lucide-react'
 import BudgetPanel from './BudgetPanel'
 import AccessionPanel from './AccessionPanel'
 import AttentionPanel from './AttentionPanel'
+import SaveBrowser from './SaveBrowser'
 
 const BUDGET_DOTS: Array<{ key: keyof BudgetAllocation; label: string; color: string }> = [
   { key: 'troopReadiness', label: 'Troops', color: '#004990' },
@@ -91,15 +92,16 @@ export default function Sidebar() {
   const [expansionOpen, setExpansionOpen]   = useState(false)
   const [crisisLogOpen, setCrisisLogOpen]   = useState(false)
   const [logDetailId, setLogDetailId]       = useState<string | null>(null)
+  const [saveBrowserOpen, setSaveBrowserOpen] = useState(false)
   // Start as null on both server and client so SSR markup matches first client
   // render. The real value is loaded in the effect below after hydration.
-  const [savedMeta, setSavedMeta]           = useState<SaveMeta | null>(null)
+  const [savedMeta, setSavedMeta]           = useState<SaveSlotMeta | null>(null)
 
   const turn           = useGameStore((s) => s.turn)
 
   // Re-read meta from localStorage on mount and after every turn (autosave runs
   // just before re-render). Running in an effect keeps SSR/CSR markup aligned.
-  useEffect(() => { setSavedMeta(loadMeta()) }, [turn])
+  useEffect(() => { setSavedMeta(latestSave()) }, [turn])
 
   // ── Panel keyboard shortcuts ───────────────────────────────────────────────
   // B → Budget, E → Expansion, A → Attention, Escape → close open panel
@@ -553,24 +555,41 @@ export default function Sidebar() {
         <p className="text-center text-xs tabular-nums" style={{ color: '#a8a29e' }}>
           Advancing to Q{nextQ} {nextYear}…
         </p>
-        <button
-          onClick={() => {
-            saveGame(useGameStore.getState())
-            setSavedMeta(loadMeta())
-          }}
-          className="w-full rounded-lg py-2 text-xs font-medium transition-colors"
-          style={{ background: '#fafaf9', color: '#57534e', border: '1px solid #e7e5e0' }}
-          onMouseEnter={(e) => {
-            ;(e.currentTarget as HTMLButtonElement).style.color = '#004990'
-            ;(e.currentTarget as HTMLButtonElement).style.borderColor = '#004990'
-          }}
-          onMouseLeave={(e) => {
-            ;(e.currentTarget as HTMLButtonElement).style.color = '#57534e'
-            ;(e.currentTarget as HTMLButtonElement).style.borderColor = '#e7e5e0'
-          }}
-        >
-          Save
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => {
+              if (saveToSlot(useGameStore.getState())) showToast('Game saved')
+              setSavedMeta(latestSave())
+            }}
+            className="flex-1 rounded-lg py-2 text-xs font-medium transition-colors"
+            style={{ background: '#fafaf9', color: '#57534e', border: '1px solid #e7e5e0' }}
+            onMouseEnter={(e) => {
+              ;(e.currentTarget as HTMLButtonElement).style.color = '#004990'
+              ;(e.currentTarget as HTMLButtonElement).style.borderColor = '#004990'
+            }}
+            onMouseLeave={(e) => {
+              ;(e.currentTarget as HTMLButtonElement).style.color = '#57534e'
+              ;(e.currentTarget as HTMLButtonElement).style.borderColor = '#e7e5e0'
+            }}
+          >
+            Save
+          </button>
+          <button
+            onClick={() => setSaveBrowserOpen(true)}
+            className="flex-1 rounded-lg py-2 text-xs font-medium transition-colors"
+            style={{ background: '#fafaf9', color: '#57534e', border: '1px solid #e7e5e0' }}
+            onMouseEnter={(e) => {
+              ;(e.currentTarget as HTMLButtonElement).style.color = '#004990'
+              ;(e.currentTarget as HTMLButtonElement).style.borderColor = '#004990'
+            }}
+            onMouseLeave={(e) => {
+              ;(e.currentTarget as HTMLButtonElement).style.color = '#57534e'
+              ;(e.currentTarget as HTMLButtonElement).style.borderColor = '#e7e5e0'
+            }}
+          >
+            Saves…
+          </button>
+        </div>
         {savedMeta && (
           <p className="text-center text-xs tabular-nums" style={{ color: '#a8a29e' }}>
             {lastSavedText(savedMeta.turn, turn)}
@@ -585,6 +604,13 @@ export default function Sidebar() {
         onClose={() => setAttentionOpen(false)}
         onOpenBudget={() => setBudgetOpen(true)}
       />
+      {saveBrowserOpen && (
+        <SaveBrowser
+          confirmReplace
+          onClose={() => setSaveBrowserOpen(false)}
+          onLoaded={() => setSavedMeta(latestSave())}
+        />
+      )}
     </aside>
   )
 }
