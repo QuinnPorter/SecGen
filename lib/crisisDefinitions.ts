@@ -54,7 +54,7 @@ function buildBudgetCut(countryId: string, countryName: string): Crisis {
       label: 'Private Engagement',
       description:
         'Hold confidential ministerial talks to persuade the government to delay or scale back the cut.',
-      capitalCost: 20,
+      capitalCost: 15,
       consequences: {
         immediate:
           'Talks are productive. The government signals willingness to review the timeline.',
@@ -68,7 +68,7 @@ function buildBudgetCut(countryId: string, countryName: string): Crisis {
       label: 'Burden-sharing Framework',
       description:
         'Offer a tailored framework that reduces fiscal pressure while maintaining capability commitments.',
-      capitalCost: 30,
+      capitalCost: 25,
       consequences: {
         immediate:
           'Finance and defence ministers meet to formalise the arrangement.',
@@ -143,7 +143,7 @@ function buildForeignThreat(countryId: string, countryName: string, state: GameS
       label: 'Deploy Rapid Response Force',
       description:
         `Order NATO's Very High Readiness Joint Task Force to forward-deploy near ${countryName}.`,
-      capitalCost: 35,
+      capitalCost: 30,
       consequences: {
         immediate:
           'Allied forces arrive within 48 hours. The adversary pauses its forward movements.',
@@ -157,7 +157,7 @@ function buildForeignThreat(countryId: string, countryName: string, state: GameS
       label: 'Emergency Summit',
       description:
         'Convene an emergency ministerial summit to demonstrate unity and coordinate a collective response.',
-      capitalCost: 25,
+      capitalCost: 20,
       consequences: {
         immediate:
           'The summit projects allied resolve. Member states rally around the threatened country.',
@@ -177,7 +177,7 @@ function buildForeignThreat(countryId: string, countryName: string, state: GameS
       label: 'Bilateral Reassurance Only',
       description:
         `Send a senior envoy to ${countryName} for targeted reassurance without a full alliance mobilisation.`,
-      capitalCost: 15,
+      capitalCost: 10,
       consequences: {
         immediate:
           `${countryName} is grateful for the direct attention and reports increased confidence.`,
@@ -226,7 +226,7 @@ function buildWithdrawalThreat(
       label: 'Emergency Bilateral Talks',
       description:
         `Fly senior leadership to ${countryName} for emergency consultations to address grievances directly.`,
-      capitalCost: 30,
+      capitalCost: 25,
       consequences: {
         immediate:
           recentlyEngaged
@@ -242,7 +242,7 @@ function buildWithdrawalThreat(
       label: 'Offer Alliance Concessions',
       description:
         `Negotiate special arrangements tailored to ${countryName}'s stated grievances — burden, mandate, or posture.`,
-      capitalCost: 40,
+      capitalCost: 35,
       consequences: {
         immediate:
           `${countryName} accepts the concessions and withdraws the threat. Tension eases domestically.`,
@@ -256,7 +256,7 @@ function buildWithdrawalThreat(
       label: 'Public Solidarity Statement',
       description:
         'Issue a joint communiqué signed by all members reaffirming the alliance\'s value and solidarity.',
-      capitalCost: 10,
+      capitalCost: 5,
       consequences: {
         immediate:
           'The statement generates goodwill. The threat is not fully withdrawn but tone softens.',
@@ -329,7 +329,7 @@ function buildAdversaryReaction(
       label: 'Pause Accession Publicly',
       description:
         'Announce a temporary pause in the accession process to allow diplomatic channels to de-escalate.',
-      capitalCost: 15,
+      capitalCost: 10,
       consequences: {
         immediate:
           `The pause signals restraint. Adversary rhetoric cools. ${countryName} expresses disappointment.`,
@@ -347,7 +347,7 @@ function buildAdversaryReaction(
       label: 'Accelerate Accession Timeline',
       description:
         'Signal that adversary pressure will speed, not slow, the accession process.',
-      capitalCost: 30,
+      capitalCost: 25,
       consequences: {
         immediate:
           `${countryName} is energised. Eastern flank members brace for increased adversary activity.`,
@@ -366,7 +366,7 @@ function buildAdversaryReaction(
       label: 'Back-channel Diplomacy',
       description:
         'Open discreet communication with the adversary to manage tensions without changing the accession track.',
-      capitalCost: 25,
+      capitalCost: 20,
       consequences: {
         immediate:
           'Confidential contacts are established. Public messaging remains unchanged.',
@@ -415,7 +415,7 @@ function buildHybridAttack(
       label: 'Activate Cyber Response',
       description:
         `Deploy NATO's Cooperative Cyber Defence Centre of Excellence assets to assist ${countryName}.`,
-      capitalCost: 20,
+      capitalCost: 15,
       consequences: {
         immediate:
           fullCyberEffect
@@ -448,7 +448,7 @@ function buildHybridAttack(
       label: 'Quietly Reinforce Defences',
       description:
         `Provide classified technical assistance to ${countryName} without public attribution.`,
-      capitalCost: 25,
+      capitalCost: 20,
       consequences: {
         immediate:
           `${countryName}'s defences are reinforced. The adversary is unaware of the full scope.`,
@@ -462,7 +462,7 @@ function buildHybridAttack(
       label: 'Request Emergency Allied Aid',
       description:
         'Formally invoke NATO crisis support mechanisms to pool allied cyber resources.',
-      capitalCost: 15,
+      capitalCost: 10,
       consequences: {
         immediate:
           `${countryName} receives an immediate surge of allied expertise and tooling.`,
@@ -506,7 +506,7 @@ function buildPoliticalInstability(countryId: string, countryName: string): Cris
       label: 'Endorse Current Government',
       description:
         `Issue a statement of confidence in ${countryName}'s current government and its NATO commitment.`,
-      capitalCost: 10,
+      capitalCost: 5,
       consequences: {
         immediate:
           'The endorsement stabilises the coalition and reassures markets.',
@@ -521,7 +521,7 @@ function buildPoliticalInstability(countryId: string, countryName: string): Cris
       label: 'Engage Cross-Party',
       description:
         'Meet with opposition leaders to build bipartisan support for NATO membership regardless of election outcome.',
-      capitalCost: 25,
+      capitalCost: 20,
       consequences: {
         immediate:
           'Both government and opposition are brought into a NATO dialogue — commitment is broadly endorsed.',
@@ -535,7 +535,7 @@ function buildPoliticalInstability(countryId: string, countryName: string): Cris
       label: 'Increase Visible NATO Presence',
       description:
         `Arrange a high-profile NATO exercise or visit to ${countryName} to shift public opinion toward the alliance.`,
-      capitalCost: 20,
+      capitalCost: 15,
       consequences: {
         immediate:
           'The show of allied presence generates positive coverage and public interest.',
@@ -591,7 +591,7 @@ function buildEnergyCrisis(countryId: string, countryName: string): Crisis {
       label: 'Emergency Energy Sharing',
       description:
         'Coordinate emergency interconnection of allied energy grids and storage reserves for the affected country.',
-      capitalCost: 30,
+      capitalCost: 25,
       consequences: {
         immediate:
           `Allied energy is rerouted to ${countryName}. Prices stabilise and public panic subsides.`,
@@ -605,7 +605,7 @@ function buildEnergyCrisis(countryId: string, countryName: string): Crisis {
       label: 'Fast-track LNG Infrastructure',
       description:
         'Fund and accelerate construction of LNG terminal or regasification capacity in the affected country.',
-      capitalCost: 40,
+      capitalCost: 35,
       consequences: {
         immediate:
           'Construction begins immediately with allied financing. Energy security projections improve.',
@@ -619,7 +619,7 @@ function buildEnergyCrisis(countryId: string, countryName: string): Crisis {
       label: 'Diplomatic Pressure on Adversary',
       description:
         'Formally demand the adversary restore energy supply and impose targeted economic countermeasures.',
-      capitalCost: 15,
+      capitalCost: 10,
       consequences: {
         immediate:
           'The demand is lodged. Adversary is publicly shamed but has not yet changed behaviour.',
@@ -633,7 +633,7 @@ function buildEnergyCrisis(countryId: string, countryName: string): Crisis {
       label: 'Bilateral Financial Support',
       description:
         `Provide direct financial aid to ${countryName} to offset energy costs without structural reform.`,
-      capitalCost: 20,
+      capitalCost: 15,
       consequences: {
         immediate:
           `${countryName} receives immediate financial relief. Fiscal pressure drops.`,
@@ -673,7 +673,7 @@ function buildArticle5(countryId: string, countryName: string): Crisis {
       label: 'Full Collective Defence',
       description:
         'Invoke Article 5 in full — commit all available NATO forces to the defence of the attacked member.',
-      capitalCost: 50,
+      capitalCost: 45,
       consequences: {
         immediate:
           'Allied forces mobilise across the theatre. The full weight of the alliance is committed.',
@@ -692,7 +692,7 @@ function buildArticle5(countryId: string, countryName: string): Crisis {
       label: 'Proportional Measured Response',
       description:
         'Respond with calibrated force — enough to deter further aggression without risking wider escalation.',
-      capitalCost: 30,
+      capitalCost: 25,
       consequences: {
         immediate:
           'A proportional response is launched. Allies note the restraint with mixed reactions.',
@@ -710,7 +710,7 @@ function buildArticle5(countryId: string, countryName: string): Crisis {
       label: 'Seek Ceasefire Immediately',
       description:
         'Prioritise de-escalation — pursue an immediate ceasefire through emergency diplomatic channels.',
-      capitalCost: 20,
+      capitalCost: 15,
       consequences: {
         immediate:
           `NATO requests an immediate ceasefire. ${countryName} expresses shock at the constrained response.`,
@@ -791,7 +791,7 @@ function buildNonAlignedElection(countryId: string, countryName: string): Crisis
       label: 'Diplomatic Engagement',
       description:
         `Open a sustained bilateral channel with ${countryName}'s new government to find common ground on alliance commitments.`,
-      capitalCost: 35,
+      capitalCost: 30,
       consequences: {
         immediate:
           `${countryName}'s leadership responds to high-level outreach. Public messaging softens; commitments hold.`,
@@ -805,7 +805,7 @@ function buildNonAlignedElection(countryId: string, countryName: string): Crisis
       label: 'Public Pressure Campaign',
       description:
         `Mobilise allied media and civil society to highlight the costs of stepping back from NATO commitments.`,
-      capitalCost: 25,
+      capitalCost: 20,
       consequences: {
         immediate:
           `Public framing forces ${countryName}'s coalition to defend its alliance position — modest gain, but the move bruises domestic politics.`,
@@ -819,7 +819,7 @@ function buildNonAlignedElection(countryId: string, countryName: string): Crisis
       label: 'Quiet Accommodation',
       description:
         `Accept the new political reality and adjust expectations — relieve burden requests, accept the rhetorical distance.`,
-      capitalCost: 10,
+      capitalCost: 5,
       consequences: {
         immediate:
           `${countryName}'s government welcomes the eased pressure. Fiscal stress drops, but the country's alliance posture cools.`,

@@ -14,6 +14,8 @@ export interface NewGameConfig {
 
 interface Props {
   onStart: (config: NewGameConfig) => void
+  /** When provided, a Cancel button is shown so a mid-game open can back out. */
+  onCancel?: () => void
 }
 
 // ── Scenario mode config ──────────────────────────────────────────────────────
@@ -107,7 +109,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export default function NewGameModal({ onStart }: Props) {
+export default function NewGameModal({ onStart, onCancel }: Props) {
   const [scenarioMode, setScenarioMode] = useState<'historical' | 'alternate'>('historical')
   const [difficulty,   setDifficulty]   = useState<Difficulty>('normal')
 
@@ -307,7 +309,26 @@ export default function NewGameModal({ onStart }: Props) {
         <Divider />
 
         {/* ── Footer ── */}
-        <div className="pt-8 flex justify-end">
+        <div className="pt-8 flex justify-end gap-3">
+          {onCancel && (
+            <button
+              onClick={onCancel}
+              className="rounded-lg px-8 py-3.5 text-sm font-medium transition-colors"
+              style={{ background: '#fafaf9', color: '#57534e', border: '1px solid #e7e5e0' }}
+              onMouseEnter={(e) => {
+                ;(e.currentTarget as HTMLButtonElement).style.background = '#f5f3ef'
+                ;(e.currentTarget as HTMLButtonElement).style.color = '#1c1917'
+                ;(e.currentTarget as HTMLButtonElement).style.borderColor = '#a8a29e'
+              }}
+              onMouseLeave={(e) => {
+                ;(e.currentTarget as HTMLButtonElement).style.background = '#fafaf9'
+                ;(e.currentTarget as HTMLButtonElement).style.color = '#57534e'
+                ;(e.currentTarget as HTMLButtonElement).style.borderColor = '#e7e5e0'
+              }}
+            >
+              Cancel
+            </button>
+          )}
           <button
             onClick={() => onStart({ scenarioMode, difficulty })}
             className="rounded-lg px-10 py-3.5 text-sm font-semibold transition-colors"

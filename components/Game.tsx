@@ -306,7 +306,7 @@ export default function Game() {
         />
       )}
       {showNewGame && (
-        <NewGameModal onStart={handleStart} />
+        <NewGameModal onStart={handleStart} onCancel={() => setShowNewGame(false)} />
       )}
       {saveBrowserOpen && (
         <SaveBrowser
@@ -316,7 +316,11 @@ export default function Game() {
       )}
       <TutorialModal open={tutorialOpen} onClose={() => setTutorialOpen(false)} />
       <NewsPanel isOpen={newsOpen} onClose={() => setNewsOpen(false)} />
-      <SettingsPanel isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      <SettingsPanel
+        isOpen={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        onNewGame={() => { setSettingsOpen(false); setShowNewGame(true) }}
+      />
     </div>
   )
 }

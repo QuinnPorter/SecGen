@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useGameStore } from '@/lib/gameState'
 import { saveToSlot, latestSave, showToast, type SaveSlotMeta } from '@/lib/persistence'
-import { X, Save, FolderOpen } from 'lucide-react'
+import { X, Save, FolderOpen, Flag } from 'lucide-react'
 import SaveBrowser from './SaveBrowser'
 
 function lastSavedText(savedTurn: number, currentTurn: number): string {
@@ -16,9 +16,11 @@ function lastSavedText(savedTurn: number, currentTurn: number): string {
 interface Props {
   isOpen: boolean
   onClose: () => void
+  /** Opens the new-game setup screen (abandons the current term). */
+  onNewGame?: () => void
 }
 
-export default function SettingsPanel({ isOpen, onClose }: Props) {
+export default function SettingsPanel({ isOpen, onClose, onNewGame }: Props) {
   const turn = useGameStore((s) => s.turn)
 
   const [saveBrowserOpen, setSaveBrowserOpen] = useState(false)
@@ -134,6 +136,31 @@ export default function SettingsPanel({ isOpen, onClose }: Props) {
             Saves are stored in this browser. Use Load / manage saves to rename, delete,
             import, or export games as files you can back up or move between devices.
           </p>
+
+          {onNewGame && (
+            <>
+              <div style={{ height: 1, background: '#e7e5e0', margin: '6px 0 2px' }} />
+              <button
+                onClick={onNewGame}
+                className="w-full flex items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-medium transition-colors"
+                style={{ background: '#fafaf9', color: '#57534e', border: '1px solid #e7e5e0' }}
+                onMouseEnter={(e) => {
+                  ;(e.currentTarget as HTMLButtonElement).style.color = '#b91c1c'
+                  ;(e.currentTarget as HTMLButtonElement).style.borderColor = '#b91c1c'
+                }}
+                onMouseLeave={(e) => {
+                  ;(e.currentTarget as HTMLButtonElement).style.color = '#57534e'
+                  ;(e.currentTarget as HTMLButtonElement).style.borderColor = '#e7e5e0'
+                }}
+              >
+                <Flag size={15} strokeWidth={2} />
+                New game…
+              </button>
+              <p className="text-xs leading-relaxed" style={{ color: '#a8a29e' }}>
+                Starts a fresh term. Save first if you want to keep the current game.
+              </p>
+            </>
+          )}
         </div>
       </div>
     </div>

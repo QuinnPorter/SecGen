@@ -6,9 +6,9 @@ export const PC_COST_ADVANCE_ACCESSION = 25  // advanceAccession / advanceAccess
 
 // PC replenished per turn by difficulty (single source of truth for UI + engine).
 export const PC_REPLENISH: Record<string, number> = {
-  diplomat: 19,
-  normal:   15,
-  crisis:   10,
+  diplomat: 23,
+  normal:   18,
+  crisis:   12,
 }
 
 export function pcReplenishFor(difficulty: string | undefined): number {
