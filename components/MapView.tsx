@@ -19,7 +19,7 @@ const PROJECTION_CONFIGS = {
 }
 
 const LEGEND_ITEMS = [
-  { color: '#1d4ed8', label: 'NATO Member',        dashed: false },
+  { color: '#1d4ed8', label: 'Treaty Member',      dashed: false },
   { color: '#1e40af', label: 'Accession Candidate', dashed: true  },
   { color: '#374151', label: 'Neutral',             dashed: false },
   { color: '#991b1b', label: 'Adversary',           dashed: false },

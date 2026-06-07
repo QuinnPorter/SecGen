@@ -1,12 +1,15 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useRef, useState } from 'react'
 import { useGameStore, selectAllianceReadiness, type BudgetAllocation, type NotificationType, type Crisis } from '@/lib/gameState'
 import { PC_MAX } from '@/lib/constants'
 import { AlertTriangle, Lightbulb, Circle, ChevronUp, ChevronDown } from 'lucide-react'
-import BudgetPanel from './BudgetPanel'
-import AccessionPanel from './AccessionPanel'
-import AttentionPanel from './AttentionPanel'
+
+interface Props {
+  onOpenBudget:    () => void
+  onOpenExpansion: () => void
+  onOpenAttention: () => void
+}
 
 const BUDGET_DOTS: Array<{ key: keyof BudgetAllocation; label: string; color: string }> = [
   { key: 'troopReadiness', label: 'Troops', color: '#004990' },
@@ -78,33 +81,12 @@ function CrisisLogDetail({ crisis }: { crisis: Crisis }) {
   )
 }
 
-export default function Sidebar() {
-  const [budgetOpen, setBudgetOpen]         = useState(false)
-  const [attentionOpen, setAttentionOpen]   = useState(false)
-  const [expansionOpen, setExpansionOpen]   = useState(false)
+export default function Sidebar({ onOpenBudget, onOpenExpansion, onOpenAttention }: Props) {
   const [crisisLogOpen, setCrisisLogOpen]   = useState(false)
   const [logDetailId, setLogDetailId]       = useState<string | null>(null)
+  const endTurnRef = useRef<HTMLButtonElement | null>(null)
 
   const turn           = useGameStore((s) => s.turn)
-
-  // ── Panel keyboard shortcuts ───────────────────────────────────────────────
-  // B → Budget, E → Expansion, A → Attention, Escape → close open panel
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      const tag = (e.target as Element).tagName
-      if (['INPUT', 'TEXTAREA', 'SELECT', 'BUTTON'].includes(tag)) return
-      if (e.key === 'b' || e.key === 'B') { setBudgetOpen((v) => !v);    return }
-      if (e.key === 'e' || e.key === 'E') { setExpansionOpen((v) => !v); return }
-      if (e.key === 'a' || e.key === 'A') { setAttentionOpen((v) => !v); return }
-      if (e.key === 'Escape') {
-        if (budgetOpen)    { setBudgetOpen(false);    return }
-        if (expansionOpen) { setExpansionOpen(false); return }
-        if (attentionOpen) { setAttentionOpen(false); return }
-      }
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [budgetOpen, expansionOpen, attentionOpen])
   const year           = useGameStore((s) => s.year)
   const quarter        = useGameStore((s) => s.quarter)
   const approvalRating = useGameStore((s) => s.approvalRating)
@@ -137,25 +119,30 @@ export default function Sidebar() {
       style={{ width: 280, background: '#fafaf9', borderRight: '1px solid #e7e5e0' }}
     >
       {/* Top — identity */}
-      <div className="p-6 pb-5 flex-shrink-0" style={{ borderBottom: '1px solid #e7e5e0' }}>
+      <div className="p-5 pb-4 flex-shrink-0" style={{ borderBottom: '1px solid #e7e5e0' }}>
         <div
-          className="font-serif font-bold tracking-tight mb-1"
-          style={{ color: '#004990', fontSize: 32, letterSpacing: '-0.02em', lineHeight: 1 }}
+          className="font-serif font-bold tracking-tight mb-3"
+          style={{ color: '#004990', fontSize: 26, letterSpacing: '-0.02em', lineHeight: 1 }}
         >
-          NATO
+          SecGen
         </div>
-        <div className="text-xs font-medium uppercase tracking-widest mb-5" style={{ color: '#78716c', letterSpacing: '0.18em' }}>
-          Secretary General
-        </div>
-        <div className="font-serif font-semibold tabular-nums" style={{ color: '#1c1917', fontSize: 22, letterSpacing: '-0.01em' }}>
+        <div className="font-serif font-semibold tabular-nums" style={{ color: '#1c1917', fontSize: 18, letterSpacing: '-0.01em' }}>
           Q{quarter} {year}
         </div>
-        <div className="text-xs mt-1 tabular-nums" style={{ color: '#78716c' }}>
+        <div className="text-xs mt-0.5 tabular-nums" style={{ color: '#78716c' }}>
           Turn {turn}
         </div>
         <button
-          onClick={advanceTurn}
-          className="w-full rounded-lg py-3 mt-4 font-semibold text-sm transition-colors"
+          ref={endTurnRef}
+          onClick={() => {
+            const el = endTurnRef.current
+            if (el) {
+              el.setAttribute('data-pressed', 'true')
+              setTimeout(() => el.removeAttribute('data-pressed'), 260)
+            }
+            advanceTurn()
+          }}
+          className="end-turn-btn w-full rounded-lg py-2.5 mt-3 font-semibold text-sm"
           style={{
             background: '#004990',
             color: '#fff',
@@ -166,20 +153,20 @@ export default function Sidebar() {
         >
           End Turn
         </button>
-        <p className="text-center text-xs mt-2 tabular-nums" style={{ color: '#a8a29e' }}>
+        <p className="text-center text-xs mt-1.5 tabular-nums" style={{ color: '#a8a29e' }}>
           Advancing to Q{nextQ} {nextYear}…
         </p>
       </div>
 
       {/* Middle — alliance status */}
-      <div className="flex-1 p-6 space-y-6">
+      <div className="flex-1 p-5 space-y-4">
         {/* Approval rating */}
         <div>
           <div className="flex items-baseline justify-between mb-2">
             <span className="text-xs font-medium uppercase tracking-wider" style={{ color: '#78716c' }}>
               Approval rating
             </span>
-            <span className="font-mono font-semibold tabular-nums" style={{ color: approvalColor(approvalRating), fontSize: 22 }}>
+            <span className="font-mono font-semibold tabular-nums" style={{ color: approvalColor(approvalRating), fontSize: 18 }}>
               {approvalRating}
             </span>
           </div>
@@ -192,7 +179,7 @@ export default function Sidebar() {
             <span className="text-xs font-medium uppercase tracking-wider" style={{ color: '#78716c' }}>
               Alliance readiness
             </span>
-            <span className="font-mono font-semibold tabular-nums" style={{ color: readinessColor(allianceReadiness), fontSize: 22 }}>
+            <span className="font-mono font-semibold tabular-nums" style={{ color: readinessColor(allianceReadiness), fontSize: 18 }}>
               {allianceReadiness}
             </span>
           </div>
@@ -247,7 +234,7 @@ export default function Sidebar() {
 
         {/* Budget summary */}
         <div
-          className="rounded-lg p-4 space-y-3"
+          className="rounded-lg p-3 space-y-2.5"
           style={{
             background: '#f5f3ef',
             border: '1px solid #e7e5e0',
@@ -280,7 +267,7 @@ export default function Sidebar() {
           </div>
 
           <button
-            onClick={() => setBudgetOpen(true)}
+            onClick={onOpenBudget}
             className="w-full rounded py-1.5 text-xs font-medium transition-colors"
             style={{ background: '#fafaf9', color: '#004990', border: '1px solid #e7e5e0' }}
             onMouseEnter={(e) => {
@@ -299,7 +286,7 @@ export default function Sidebar() {
         {/* Members needing attention */}
         {needsAttention > 0 && (
           <button
-            onClick={() => setAttentionOpen(true)}
+            onClick={onOpenAttention}
             className="w-full rounded-lg px-3 py-2.5 flex items-center gap-2 transition-colors text-left"
             style={{ background: '#fef3c7', border: '1px solid #b45309' }}
             onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.background = '#fde68a')}
@@ -314,13 +301,13 @@ export default function Sidebar() {
 
         {/* Member count */}
         <div
-          className="rounded-lg px-4 py-3 flex items-center justify-between"
+          className="rounded-lg px-3 py-2.5 flex items-center justify-between"
           style={{ background: '#f5f3ef', border: '1px solid #e7e5e0' }}
         >
           <span className="text-xs font-medium uppercase tracking-wider" style={{ color: '#78716c' }}>
             Member states
           </span>
-          <span className="font-mono font-semibold tabular-nums" style={{ color: '#004990', fontSize: 20 }}>
+          <span className="font-mono font-semibold tabular-nums" style={{ color: '#004990', fontSize: 17 }}>
             {memberCount}
           </span>
         </div>
@@ -340,7 +327,7 @@ export default function Sidebar() {
 
           return (
             <div
-              className="rounded-lg p-4 space-y-2"
+              className="rounded-lg p-3 space-y-2"
               style={{
                 background: '#f5f3ef',
                 border: '1px solid #e7e5e0',
@@ -395,7 +382,7 @@ export default function Sidebar() {
 
               {/* Open button */}
               <button
-                onClick={() => setExpansionOpen(true)}
+                onClick={onOpenExpansion}
                 className="w-full rounded py-1.5 text-xs font-medium transition-colors"
                 style={{ background: '#fafaf9', color: '#004990', border: '1px solid #e7e5e0' }}
                 onMouseEnter={(e) => {
@@ -537,13 +524,6 @@ export default function Sidebar() {
         </div>
       </div>
 
-      <BudgetPanel isOpen={budgetOpen} onClose={() => setBudgetOpen(false)} />
-      <AccessionPanel isOpen={expansionOpen} onClose={() => setExpansionOpen(false)} />
-      <AttentionPanel
-        isOpen={attentionOpen}
-        onClose={() => setAttentionOpen(false)}
-        onOpenBudget={() => setBudgetOpen(true)}
-      />
     </aside>
   )
 }

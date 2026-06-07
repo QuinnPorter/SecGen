@@ -163,7 +163,7 @@ export default function EndGameScreen({ onReviewMap, onNewTerm }: Props) {
             className="text-xs font-semibold uppercase tracking-widest mb-3"
             style={{ color: '#a8a29e', letterSpacing: '0.25em' }}
           >
-            NATO Secretary General
+            Northern Alliance Treaty
           </p>
           <h1
             className="font-serif font-bold mb-2 tracking-tight"

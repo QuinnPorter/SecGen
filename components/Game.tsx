@@ -15,6 +15,10 @@ import TurnSummary from './TurnSummary'
 import TutorialModal from './TutorialModal'
 import NewsPanel from './NewsPanel'
 import SettingsPanel from './SettingsPanel'
+import TopTabBar from './TopTabBar'
+import BudgetPanel from './BudgetPanel'
+import AccessionPanel from './AccessionPanel'
+import AttentionPanel from './AttentionPanel'
 
 // ── Load-save modal ───────────────────────────────────────────────────────────
 
@@ -49,7 +53,7 @@ function LoadModal({
           className="text-xs font-black uppercase tracking-widest mb-3"
           style={{ color: '#a8a29e', letterSpacing: '0.2em' }}
         >
-          NATO Secretary General
+          Northern Alliance Treaty
         </p>
         <h2
           className="font-serif font-semibold mb-2 tracking-tight"
@@ -158,6 +162,10 @@ export default function Game() {
   const [tutorialOpen, setTutorialOpen] = useState(false)
   const [newsOpen, setNewsOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  // Lifted from Sidebar so the top tab bar and keyboard shortcuts share one source of truth
+  const [budgetOpen,    setBudgetOpen]    = useState(false)
+  const [expansionOpen, setExpansionOpen] = useState(false)
+  const [attentionOpen, setAttentionOpen] = useState(false)
   const turn              = useGameStore((s) => s.turn)
   const gameOutcome       = useGameStore((s) => s.gameOutcome)
   const showTurnSummary   = useGameStore((s) => s.showTurnSummary)
@@ -208,7 +216,7 @@ export default function Game() {
       const tag = (e.target as Element).tagName
       if (['INPUT', 'TEXTAREA', 'SELECT', 'BUTTON'].includes(tag)) return
 
-      const anyOverlay = briefOpen || showTurnSummary || showNewGame || !!loadMeta_ || saveBrowserOpen || newsOpen || settingsOpen
+      const anyOverlay = briefOpen || showTurnSummary || showNewGame || !!loadMeta_ || saveBrowserOpen || newsOpen || settingsOpen || budgetOpen || expansionOpen || attentionOpen
 
       if (e.code === 'Space' || e.code === 'Enter') {
         if (anyOverlay || gameOutcome !== null) return
@@ -220,10 +228,17 @@ export default function Game() {
       if (e.key === 'Escape') {
         if (settingsOpen)     { setSettingsOpen(false); return }
         if (newsOpen)         { setNewsOpen(false);     return }
+        if (budgetOpen)       { setBudgetOpen(false);   return }
+        if (expansionOpen)    { setExpansionOpen(false);return }
+        if (attentionOpen)    { setAttentionOpen(false);return }
         if (briefOpen)        { setBriefOpen(false);    return }
         if (showTurnSummary)  { dismissTurnSummary();    return }
         return
       }
+
+      if (e.key === 'b' || e.key === 'B') { setBudgetOpen((v) => !v);    return }
+      if (e.key === 'e' || e.key === 'E') { setExpansionOpen((v) => !v); return }
+      if (e.key === 'a' || e.key === 'A') { setAttentionOpen((v) => !v); return }
 
       if (e.key === 'i' || e.key === 'I') {
         if (anyOverlay || gameOutcome !== null) return
@@ -237,7 +252,7 @@ export default function Game() {
 
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [briefOpen, showTurnSummary, showNewGame, loadMeta_, saveBrowserOpen, newsOpen, settingsOpen, gameOutcome, advanceTurn, dismissTurnSummary])
+  }, [briefOpen, showTurnSummary, showNewGame, loadMeta_, saveBrowserOpen, newsOpen, settingsOpen, budgetOpen, expansionOpen, attentionOpen, gameOutcome, advanceTurn, dismissTurnSummary])
 
   // When TurnSummary is dismissed, open IntelBrief if one was pending
   useEffect(() => {
@@ -282,13 +297,34 @@ export default function Game() {
         onOpenNews={() => setNewsOpen(true)}
         onOpenSettings={() => setSettingsOpen(true)}
       />
+      <TopTabBar
+        budgetOpen={budgetOpen}
+        expansionOpen={expansionOpen}
+        attentionOpen={attentionOpen}
+        newsOpen={newsOpen}
+        onOpenBudget={() => setBudgetOpen(true)}
+        onOpenExpansion={() => setExpansionOpen(true)}
+        onOpenAttention={() => setAttentionOpen(true)}
+        onOpenNews={() => setNewsOpen(true)}
+      />
       <div style={{ display: 'flex', flex: 1, position: 'relative', overflow: 'hidden' }}>
-        <Sidebar />
+        <Sidebar
+          onOpenBudget={() => setBudgetOpen(true)}
+          onOpenExpansion={() => setExpansionOpen(true)}
+          onOpenAttention={() => setAttentionOpen(true)}
+        />
         <div style={{ flex: 1, overflow: 'hidden' }}>
           <MapView />
         </div>
         <CountryPanel />
       </div>
+      <BudgetPanel    isOpen={budgetOpen}    onClose={() => setBudgetOpen(false)} />
+      <AccessionPanel isOpen={expansionOpen} onClose={() => setExpansionOpen(false)} />
+      <AttentionPanel
+        isOpen={attentionOpen}
+        onClose={() => setAttentionOpen(false)}
+        onOpenBudget={() => setBudgetOpen(true)}
+      />
       <TurnSummary />
       <IntelBrief isOpen={briefOpen} onClose={() => setBriefOpen(false)} />
       {gameOutcome && !reviewMode && (

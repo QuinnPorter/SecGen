@@ -61,9 +61,9 @@ const nordicQuestion: ScenarioDefinition = {
   id: 'nordic_question',
   turn: 4,
   triggered: false,
-  title: 'Finland and Sweden Signal Interest in NATO Membership',
+  title: 'Finland and Sweden Signal Interest in Treaty Membership',
   briefing:
-    'Following a significant shift in public opinion and regional security concerns, both Finland and Sweden have privately indicated willingness to discuss NATO membership. ' +
+    'Following a significant shift in public opinion and regional security concerns, both Finland and Sweden have privately indicated willingness to discuss Treaty membership. ' +
     'This would be the most significant expansion in a generation, bringing two highly capable militaries into the alliance. ' +
     'Moscow has already signalled it views any expansion in the Nordic theatre as a red line. ' +
     'How do you wish to proceed?',
@@ -196,7 +196,7 @@ const nordicQuestion: ScenarioDefinition = {
             affectedCountryId: 'SWE',
             effects: { allianceSatisfaction: 10 },
             flavourText:
-              "Sweden's measured approach to closer ties has strengthened mutual confidence with NATO partners.",
+              "Sweden's measured approach to closer ties has strengthened mutual confidence with Treaty partners.",
             applied: false,
           },
         ]

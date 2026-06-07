@@ -15,11 +15,11 @@ interface Slide {
 
 const SLIDES: Slide[] = [
   {
-    title: 'Lead NATO, 2024–2044',
+    title: 'Lead the Treaty, 2024–2044',
     body: (
       <p className="text-sm leading-relaxed" style={{ color: '#57534e' }}>
         You&apos;re the Secretary General. Steer the alliance through a 20-year term —
-        keep NATO cohesive, ready, and growing as you respond to crises.
+        keep the Treaty cohesive, ready, and growing as you respond to crises.
       </p>
     ),
   },

@@ -27,7 +27,7 @@ const SLIDER_META: SliderMeta[] = [
     key: 'troopReadiness',
     label: 'Troop Readiness',
     color: '#004990',
-    description: 'Drives readiness improvement across all NATO members each turn.',
+    description: 'Drives readiness improvement across all Treaty members each turn.',
   },
   {
     key: 'RAndD',
@@ -39,7 +39,7 @@ const SLIDER_META: SliderMeta[] = [
     key: 'cyberDefence',
     label: 'Cyber Defence',
     color: '#0f766e',
-    description: 'Suppresses threat levels across all NATO members each turn; reduces hybrid attack frequency.',
+    description: 'Suppresses threat levels across all Treaty members each turn; reduces hybrid attack frequency.',
   },
   {
     key: 'partnerAid',

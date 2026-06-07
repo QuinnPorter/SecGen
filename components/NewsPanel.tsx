@@ -61,7 +61,7 @@ export default function NewsPanel({ isOpen, onClose }: Props) {
               className="text-xs font-black uppercase tracking-widest mb-1"
               style={{ color: '#a8a29e', letterSpacing: '0.2em' }}
             >
-              NATO Wire
+              Treaty Wire
             </p>
             <h2
               className="flex items-center gap-2 font-serif font-semibold tracking-tight"

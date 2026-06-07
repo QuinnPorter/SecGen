@@ -34,7 +34,7 @@ export function checkVictoryConditions(state: GameState): VictoryResult | null {
       status: 'lost',
       reason: 'The Alliance Has Fractured',
       detail:
-        "Three member states have withdrawn from NATO. The alliance's collective defence guarantee is no longer credible.",
+        "Three member states have withdrawn from the Treaty. The alliance's collective defence guarantee is no longer credible.",
     }
   }
 
@@ -42,7 +42,7 @@ export function checkVictoryConditions(state: GameState): VictoryResult | null {
   if (lowReadinessTurns >= 4) {
     return {
       status: 'lost',
-      reason: 'NATO Has Lost Deterrence Credibility',
+      reason: 'The Treaty Has Lost Deterrence Credibility',
       detail:
         'Alliance military readiness has collapsed. Adversaries no longer believe Article 5 will be enforced.',
     }
@@ -76,7 +76,7 @@ export function checkVictoryConditions(state: GameState): VictoryResult | null {
           status: 'lost',
           reason: 'Article 5 Has Failed',
           detail:
-            "NATO's core guarantee proved empty. The alliance's credibility as a collective defence organisation is destroyed.",
+            "The Treaty's core guarantee proved empty. The alliance's credibility as a collective defence organisation is destroyed.",
         }
       }
     }
@@ -94,7 +94,7 @@ export function checkVictoryConditions(state: GameState): VictoryResult | null {
         status: 'won',
         reason: 'A Generation-Defining Secretaryship',
         detail:
-          'Under your leadership NATO has expanded, maintained its deterrence credibility, and emerged stronger than when you took office.',
+          'Under your leadership the Treaty has expanded, maintained its deterrence credibility, and emerged stronger than when you took office.',
       }
     }
 
@@ -103,7 +103,7 @@ export function checkVictoryConditions(state: GameState): VictoryResult | null {
       return {
         status: 'won',
         reason: 'Your Term Is Complete',
-        detail: 'You have served a full term as NATO Secretary General. The alliance endures.',
+        detail: 'You have served a full term as Treaty Secretary General. The alliance endures.',
       }
     }
   }

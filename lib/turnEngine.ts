@@ -374,7 +374,7 @@ export function handleEscalationSideEffects(
     if (hasTrait(crisis.affectedCountryId, 'kingmaker', countries[crisis.affectedCountryId]?.runtimeTraits)) {
       newNotifications.push({
         id: crypto.randomUUID(),
-        text: `STRATEGIC CRISIS: ${countryName} has suspended NATO commitments — alliance cohesion at risk.`,
+        text: `STRATEGIC CRISIS: ${countryName} has suspended Treaty commitments — alliance cohesion at risk.`,
         turn: nextTurn,
         type: 'strategic_crisis' as NotificationType,
       })
@@ -396,7 +396,7 @@ export function handleEscalationSideEffects(
       updatedCountry = { ...updatedCountry, alignment: 'neutral' }
       newNotifications.push({
         id: crypto.randomUUID(),
-        text: `${countryName} suspends NATO participation following election results.`,
+        text: `${countryName} suspends Treaty participation following election results.`,
         turn: nextTurn,
         type: 'strategic_crisis' as NotificationType,
       })

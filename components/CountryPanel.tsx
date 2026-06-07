@@ -26,7 +26,7 @@ const NATO_ACCESSION_YEAR: Record<string, number> = {
 }
 
 const ALIGNMENT_BADGE: Record<string, { label: string; bg: string; color: string }> = {
-  nato:      { label: 'NATO Member',  bg: '#004990', color: '#fff' },
+  nato:      { label: 'Treaty Member',  bg: '#004990', color: '#fff' },
   adversary: { label: 'Adversary',    bg: '#b91c1c', color: '#fff' },
   candidate: { label: 'Candidate',    bg: '#e0eaf5', color: '#004990' },
   neutral:   { label: 'Neutral',      bg: '#f5f3ef', color: '#57534e' },

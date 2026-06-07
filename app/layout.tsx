@@ -24,7 +24,7 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "NATO Secretary General",
+  title: "SecGen — Northern Alliance Treaty",
   description: "Single-player geopolitical strategy game",
 };
 

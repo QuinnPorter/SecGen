@@ -32,7 +32,7 @@ const SCENARIO_MODES: {
     label: 'Historical (2024)',
     tag: 'Default',
     description:
-      'Finland and Sweden are NATO members. Begin with the alliance as it stands today.',
+      'Finland and Sweden are Treaty members. Begin with the alliance as it stands today.',
     note: '32 member states · Full Nordic coverage',
   },
   {
@@ -129,7 +129,7 @@ export default function NewGameModal({ onStart, onCancel }: Props) {
             className="text-xs font-black uppercase tracking-widest mb-3"
             style={{ color: '#a8a29e', letterSpacing: '0.25em' }}
           >
-            NATO Secretary General
+            Northern Alliance Treaty
           </p>
           <h1
             className="font-serif font-bold mb-2 tracking-tight"

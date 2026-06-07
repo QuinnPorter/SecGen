@@ -6,7 +6,7 @@ import { HelpCircle, Settings, Circle, Newspaper, Zap } from 'lucide-react'
 
 const VIEW_MODES: { id: ViewMode; label: string }[] = [
   { id: 'world',     label: 'World' },
-  { id: 'nato-area', label: 'NATO Area' },
+  { id: 'nato-area', label: 'Treaty Area' },
 ]
 
 const SEV_ORDER: Record<string, number> = { low: 1, medium: 2, high: 3, critical: 4 }
@@ -64,8 +64,8 @@ export default function HUD({ onOpenBrief, onOpenTutorial, onOpenNews, onOpenSet
 
       {/* View toggle */}
       <div
-        className="flex rounded-md overflow-hidden"
-        style={{ border: '1px solid #d6d3d1', background: '#fafaf9' }}
+        className="flex items-center rounded-full"
+        style={{ border: '1px solid #d6d3d1', background: '#fafaf9', padding: 2 }}
       >
         {VIEW_MODES.map(({ id, label }) => {
           const active = viewMode === id
@@ -73,10 +73,20 @@ export default function HUD({ onOpenBrief, onOpenTutorial, onOpenNews, onOpenSet
             <button
               key={id}
               onClick={() => setViewMode(id)}
-              className="text-xs font-medium px-3 py-1 transition-colors"
+              className="rounded-full text-xs font-medium px-3.5 py-1 transition-colors"
               style={{
                 background: active ? '#004990' : 'transparent',
                 color:      active ? '#fff'     : '#57534e',
+              }}
+              onMouseEnter={(e) => {
+                if (active) return
+                ;(e.currentTarget as HTMLButtonElement).style.background = '#f0ede7'
+                ;(e.currentTarget as HTMLButtonElement).style.color      = '#1c1917'
+              }}
+              onMouseLeave={(e) => {
+                if (active) return
+                ;(e.currentTarget as HTMLButtonElement).style.background = 'transparent'
+                ;(e.currentTarget as HTMLButtonElement).style.color      = '#57534e'
               }}
             >
               {label}

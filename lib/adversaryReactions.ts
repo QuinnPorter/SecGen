@@ -84,9 +84,9 @@ export function checkAdversaryReactions(
       affectedCountryId: candidateId,
       title: `Adversary Response: ${candidateName} Accession`,
       description:
-        `Russia has escalated military posturing in response to NATO's Membership Action Plan ` +
+        `Russia has escalated military posturing in response to the Treaty's Membership Action Plan ` +
         `for ${candidateName}. Intelligence reports indicate increased air and naval activity ` +
-        `near NATO's eastern borders. Allied members are demanding a coordinated response.`,
+        `near the Treaty's eastern borders. Allied members are demanding a coordinated response.`,
       severity: 'high',
       turnsUntilActive: 2,
       turnsActive: 0,
@@ -95,10 +95,10 @@ export function checkAdversaryReactions(
         {
           id: 'warn',
           label: 'Issue Public Warning',
-          description: 'Release a formal NATO statement condemning the escalation and reaffirming the open-door policy.',
+          description: 'Release a formal Treaty statement condemning the escalation and reaffirming the open-door policy.',
           capitalCost: 10,
           consequences: {
-            immediate: 'NATO publishes a formal condemnation. International media attention intensifies briefly.',
+            immediate: 'The Treaty publishes a formal condemnation. International media attention intensifies briefly.',
             delayed: 'The warning maintained political visibility but produced limited deterrent effect.',
           },
           effects: { approvalRating: 3, allianceSatisfaction: 5 },
@@ -106,7 +106,7 @@ export function checkAdversaryReactions(
         {
           id: 'reinforce',
           label: 'Reinforce Eastern Flank',
-          description: 'Order additional NATO forces and assets into forward positions near the candidate\'s borders.',
+          description: 'Order additional Treaty forces and assets into forward positions near the candidate\'s borders.',
           capitalCost: 20,
           consequences: {
             immediate: 'Allied forces begin repositioning. The candidate country reports feeling more secure.',

@@ -117,7 +117,7 @@ export default function SaveBrowser({ onClose, onLoaded, confirmReplace = false 
       >
         {/* Header */}
         <p className="text-xs font-black uppercase tracking-widest mb-3" style={{ color: '#a8a29e', letterSpacing: '0.2em' }}>
-          NATO Secretary General
+          Northern Alliance Treaty
         </p>
         <h2 className="font-serif font-semibold mb-1 tracking-tight" style={{ fontSize: 22, color: '#1c1917', letterSpacing: '-0.01em' }}>
           Load Game

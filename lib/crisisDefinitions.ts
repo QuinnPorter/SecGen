@@ -128,7 +128,7 @@ function buildForeignThreat(countryId: string, countryName: string, state: GameS
       id: 'warning',
       label: 'Issue Formal Warning',
       description:
-        'Release a formal NATO communiqué warning the adversary of consequences for continued provocations.',
+        'Release a formal Treaty communiqué warning the adversary of consequences for continued provocations.',
       capitalCost: 0,
       consequences: {
         immediate:
@@ -142,7 +142,7 @@ function buildForeignThreat(countryId: string, countryName: string, state: GameS
       id: 'rrf',
       label: 'Deploy Rapid Response Force',
       description:
-        `Order NATO's Very High Readiness Joint Task Force to forward-deploy near ${countryName}.`,
+        `Order the Treaty's Very High Readiness Joint Task Force to forward-deploy near ${countryName}.`,
       capitalCost: 30,
       consequences: {
         immediate:
@@ -270,11 +270,11 @@ function buildWithdrawalThreat(
       id: 'bluff',
       label: "Call Their Bluff",
       description:
-        'Refuse to negotiate publicly — state that NATO cannot be held hostage by membership threats.',
+        'Refuse to negotiate publicly — state that the Treaty cannot be held hostage by membership threats.',
       capitalCost: 0,
       consequences: {
         immediate:
-          `NATO refuses to negotiate under threat. ${countryName}'s government faces a domestic test of resolve.`,
+          `The Treaty refuses to negotiate under threat. ${countryName}'s government faces a domestic test of resolve.`,
         delayed:
           'The outcome remains uncertain — internal political dynamics will determine whether this stabilises or escalates.',
       },
@@ -288,10 +288,10 @@ function buildWithdrawalThreat(
     type: 'withdrawal_threat',
     status: 'pending',
     affectedCountryId: countryId,
-    title: `${countryName} threatens to reassess NATO membership`,
+    title: `${countryName} threatens to reassess Treaty membership`,
     description:
       `${countryName}'s government has raised fundamental questions about the value of continued ` +
-      `NATO membership, citing unmet expectations and growing domestic political pressure. ` +
+      `Treaty membership, citing unmet expectations and growing domestic political pressure. ` +
       `If not addressed swiftly, the threat risks emboldening populist movements in other member states.`,
     severity,
     turnsUntilActive: 0,
@@ -314,11 +314,11 @@ function buildAdversaryReaction(
       id: 'reaffirm',
       label: 'Reaffirm Open Door',
       description:
-        'Issue a formal NATO statement reaffirming the open-door policy and the legitimacy of the accession process.',
+        'Issue a formal Treaty statement reaffirming the open-door policy and the legitimacy of the accession process.',
       capitalCost: 0,
       consequences: {
         immediate:
-          `NATO reaffirms its commitment. ${countryName} welcomes the public support.`,
+          `The Treaty reaffirms its commitment. ${countryName} welcomes the public support.`,
         delayed:
           'The principled stance has bolstered the credibility of the accession track.',
       },
@@ -414,7 +414,7 @@ function buildHybridAttack(
       id: 'cyber_response',
       label: 'Activate Cyber Response',
       description:
-        `Deploy NATO's Cooperative Cyber Defence Centre of Excellence assets to assist ${countryName}.`,
+        `Deploy the Treaty's Cooperative Cyber Defence Centre of Excellence assets to assist ${countryName}.`,
       capitalCost: 15,
       consequences: {
         immediate:
@@ -461,7 +461,7 @@ function buildHybridAttack(
       id: 'emergency_aid',
       label: 'Request Emergency Allied Aid',
       description:
-        'Formally invoke NATO crisis support mechanisms to pool allied cyber resources.',
+        'Formally invoke Treaty crisis support mechanisms to pool allied cyber resources.',
       capitalCost: 10,
       consequences: {
         immediate:
@@ -505,7 +505,7 @@ function buildPoliticalInstability(countryId: string, countryName: string): Cris
       id: 'endorse_govt',
       label: 'Endorse Current Government',
       description:
-        `Issue a statement of confidence in ${countryName}'s current government and its NATO commitment.`,
+        `Issue a statement of confidence in ${countryName}'s current government and its Treaty commitment.`,
       capitalCost: 5,
       consequences: {
         immediate:
@@ -520,27 +520,27 @@ function buildPoliticalInstability(countryId: string, countryName: string): Cris
       id: 'cross_party',
       label: 'Engage Cross-Party',
       description:
-        'Meet with opposition leaders to build bipartisan support for NATO membership regardless of election outcome.',
+        'Meet with opposition leaders to build bipartisan support for Treaty membership regardless of election outcome.',
       capitalCost: 20,
       consequences: {
         immediate:
-          'Both government and opposition are brought into a NATO dialogue — commitment is broadly endorsed.',
+          'Both government and opposition are brought into a Treaty dialogue — commitment is broadly endorsed.',
         delayed:
-          'Cross-party buy-in has insulated NATO commitment from the domestic political cycle.',
+          'Cross-party buy-in has insulated Treaty commitment from the domestic political cycle.',
       },
       effects: { allianceSatisfaction: 8, approvalRating: 3 },
     },
     {
       id: 'visible_presence',
-      label: 'Increase Visible NATO Presence',
+      label: 'Increase Visible Treaty Presence',
       description:
-        `Arrange a high-profile NATO exercise or visit to ${countryName} to shift public opinion toward the alliance.`,
+        `Arrange a high-profile Treaty exercise or visit to ${countryName} to shift public opinion toward the alliance.`,
       capitalCost: 15,
       consequences: {
         immediate:
           'The show of allied presence generates positive coverage and public interest.',
         delayed:
-          'Sustained visibility has measurably improved public support for NATO membership.',
+          'Sustained visibility has measurably improved public support for Treaty membership.',
       },
       effects: { allianceSatisfaction: 6, fiscalPressure: -3, approvalRating: 2 },
     },
@@ -552,9 +552,9 @@ function buildPoliticalInstability(countryId: string, countryName: string): Cris
       capitalCost: 0,
       consequences: {
         immediate:
-          'NATO takes no position. The crisis continues to unfold without external input.',
+          'The Treaty takes no position. The crisis continues to unfold without external input.',
         delayed:
-          'Inaction has allowed domestic anti-NATO sentiment to harden.',
+          'Inaction has allowed domestic anti-Treaty sentiment to harden.',
       },
       effects: { allianceSatisfaction: -15, fiscalPressure: 10 },
     },
@@ -565,11 +565,11 @@ function buildPoliticalInstability(countryId: string, countryName: string): Cris
     type: 'political_instability',
     status: 'pending',
     affectedCountryId: countryId,
-    title: `Government crisis threatens ${countryName}'s NATO commitment`,
+    title: `Government crisis threatens ${countryName}'s Treaty commitment`,
     description:
       `A domestic political crisis in ${countryName} has raised uncertainty about the continuity ` +
-      `of its NATO commitments. Opposition forces are questioning the value of alliance membership, ` +
-      `and early polling suggests public support for NATO has dipped to historic lows.`,
+      `of its Treaty commitments. Opposition forces are questioning the value of alliance membership, ` +
+      `and early polling suggests public support for the Treaty has dipped to historic lows.`,
     severity: 'medium',
     turnsUntilActive: 2,
     turnsActive: 0,
@@ -653,7 +653,7 @@ function buildEnergyCrisis(countryId: string, countryName: string): Crisis {
     description:
       `${countryName} is experiencing significant energy supply disruption linked to adversary ` +
       `pressure on strategic pipelines and supply contracts. Economic strain is mounting and ` +
-      `public support for NATO commitments is weakening as energy prices spike.`,
+      `public support for Treaty commitments is weakening as energy prices spike.`,
     severity,
     turnsUntilActive: 2,
     turnsActive: 0,
@@ -672,7 +672,7 @@ function buildArticle5(countryId: string, countryName: string): Crisis {
       id: 'collective_defence',
       label: 'Full Collective Defence',
       description:
-        'Invoke Article 5 in full — commit all available NATO forces to the defence of the attacked member.',
+        'Invoke Article 5 in full — commit all available Treaty forces to the defence of the attacked member.',
       capitalCost: 45,
       consequences: {
         immediate:
@@ -713,9 +713,9 @@ function buildArticle5(countryId: string, countryName: string): Crisis {
       capitalCost: 15,
       consequences: {
         immediate:
-          `NATO requests an immediate ceasefire. ${countryName} expresses shock at the constrained response.`,
+          `The Treaty requests an immediate ceasefire. ${countryName} expresses shock at the constrained response.`,
         delayed:
-          "The ceasefire holds, but NATO's credibility as a collective defence guarantee has been severely damaged.",
+          "The ceasefire holds, but the Treaty's credibility as a collective defence guarantee has been severely damaged.",
       },
       effects: {
         threatLevel: -10,
@@ -733,9 +733,9 @@ function buildArticle5(countryId: string, countryName: string): Crisis {
     affectedCountryId: countryId,
     title: `Article 5 Invoked — ${countryName} Under Attack`,
     description:
-      `A member state has suffered an armed attack that triggers Article 5 of the North Atlantic Treaty. ` +
+      `A member state has suffered an armed attack that triggers Article 5 of the Northern Alliance Treaty. ` +
       `All Allied nations are obligated to take such action as deemed necessary, including the use of armed force. ` +
-      `This is the most consequential decision NATO can face. The world is watching.`,
+      `This is the most consequential decision the Treaty can face. The world is watching.`,
     severity: 'critical',
     turnsUntilActive: 0,
     turnsActive: 0,
@@ -804,7 +804,7 @@ function buildNonAlignedElection(countryId: string, countryName: string): Crisis
       id: 'public_pressure',
       label: 'Public Pressure Campaign',
       description:
-        `Mobilise allied media and civil society to highlight the costs of stepping back from NATO commitments.`,
+        `Mobilise allied media and civil society to highlight the costs of stepping back from Treaty commitments.`,
       capitalCost: 20,
       consequences: {
         immediate:
@@ -836,7 +836,7 @@ function buildNonAlignedElection(countryId: string, countryName: string): Crisis
       capitalCost: 0,
       consequences: {
         immediate:
-          'No public NATO response. The new government has free rein to define its alliance stance.',
+          'No public Treaty response. The new government has free rein to define its alliance stance.',
         delayed:
           'The wait risks letting the country drift — if unresolved, alignment may shift.',
       },
@@ -851,7 +851,7 @@ function buildNonAlignedElection(countryId: string, countryName: string): Crisis
     affectedCountryId: countryId,
     title: `${countryName}: Alliance-skeptic coalition wins election`,
     description:
-      `${countryName}'s electorate has handed power to a coalition openly skeptical of NATO commitments, ` +
+      `${countryName}'s electorate has handed power to a coalition openly skeptical of Treaty commitments, ` +
       `pledging to renegotiate burden sharing and review long-standing alliance positions. ` +
       `Without a deliberate response, the country may drift toward strategic neutrality.`,
     severity,
